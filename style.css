@@ -109,13 +109,6 @@ body {
   100% { translate: 0 0; }
 }
 
-/* 集めた瞬間の宝石(script.js がこのクラスを付ける)。
-   キラッと大きくなりながら消えていく */
-.gem.collected {
-  animation: collect 0.4s ease-out forwards;
-  pointer-events: none; /* 消えている途中に2回クリックできないようにする */
-}
-
 @keyframes collect {
   from { transform: scale(1);   opacity: 1; }
   to   { transform: scale(1.6); opacity: 0; }
@@ -133,6 +126,26 @@ body {
 @keyframes rainbow-spin {
   from { filter: hue-rotate(0deg)   drop-shadow(0 0 22px rgba(255, 255, 255, 0.8)); }
   to   { filter: hue-rotate(360deg) drop-shadow(0 0 22px rgba(255, 255, 255, 0.8)); }
+}
+
+/* 自分の画像に差し替えた宝石(script.js が has-image クラスを付ける)。
+   色変え(hue-rotate)をかけると画像の色まで変わってしまうので、
+   光る影だけにして、画像は元の色のまま表示する */
+.gem.has-image {
+  filter: drop-shadow(0 0 15px rgba(255, 240, 255, 0.45));
+  animation:
+    pop-in 0.3s ease-out,
+    float 4s ease-in-out infinite;
+}
+
+/* 集めた瞬間の宝石(script.js がこのクラスを付ける)。
+   キラッと大きくなりながら消えていく。
+   ※ この指定は rainbow や has-image より「あと」に書くこと!
+      CSS は同じ強さの指定なら後に書いたほうが勝つので、
+      どの宝石でも「消えるアニメーション」が最優先になる */
+.gem.collected {
+  animation: collect 0.4s ease-out forwards;
+  pointer-events: none; /* 消えている途中に2回クリックできないようにする */
 }
 
 /* 「+1」がふわっと浮かぶ演出(script.js がこのクラスの文字を作る) */

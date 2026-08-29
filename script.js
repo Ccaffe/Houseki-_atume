@@ -12,6 +12,23 @@
    5. データはブラウザに保存される(次に開いたときも残る)
    ========================================================= */
 
+/* =========================================================
+   ★ 画像さしかえコーナー ★
+   宝石を自分の画像にしたいときは、画像ファイルをこのフォルダーに
+   入れて、下の null を "ファイル名" に書きかえるだけ!
+   (例)  1: "gem.png",
+   null のままの形は、HTML の型紙(SVG)で描いた宝石になる
+   ========================================================= */
+const gemImages = {
+  1: null,       // 形Lv1: 五角形の宝石のかわりに使う画像
+  2: null,       // 形Lv2: 四角形
+  3: null,       // 形Lv3: 七角形
+  4: null,       // 形Lv4: ハート型
+  5: null,       // 形Lv5〜: 星型
+  rainbow: null, // 虹色のレア宝石(例: "rainbow.png")
+};
+
+
 /* ---------- ゲームのデータ(変数) ---------- */
 
 // 「let」は「あとで中身が変わる変数」を作る書き方
@@ -46,7 +63,6 @@ function upgradeCost(level) {
 const gemCountDisplay = document.getElementById("gem-count"); // 宝石の数の表示
 const userLevelDisplay = document.getElementById("user-level"); // レベルの表示
 const mainArea = document.getElementById("main-area");         // 宝石が出るエリア
-const gemTemplate = document.getElementById("gem-template");   // 宝石の型紙
 const upgradeOverlay = document.getElementById("upgrade-overlay");   // 強化画面
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
 
@@ -238,6 +254,12 @@ function showPlusOne(x, y, amount, isRainbow) {
 
 /* ---------- 宝石を1個、ランダムな場所に出現させる ---------- */
 
+// いまの「形レベル」に合った番号を返す(形は5種類。Lv5以上はずっと星型)
+// Math.min(a, b) は「a と b の小さいほう」を返す
+function currentShapeNumber() {
+  return Math.min(upgrades.shape.level, 5);
+}
+
 function spawnGem() {
   // すでに画面に MAX_GEMS 個あったら、これ以上は出さない
   const gemsOnScreen = mainArea.querySelectorAll(".gem").length;
@@ -245,14 +267,42 @@ function spawnGem() {
     return; // 「return」= ここで関数を終わりにする
   }
 
-  // 型紙(template)をコピーして、新しい宝石ボタンを作る
+  // 形レベルに合った型紙(template)を選んで、コピーして宝石ボタンを作る
+  const shapeNumber = currentShapeNumber();
+  const gemTemplate = document.getElementById("gem-template-" + shapeNumber);
   const gem = gemTemplate.content.firstElementChild.cloneNode(true);
 
+  // 虹色のレア宝石にするかどうかの抽選。
+  // 「色レベル×4」%の確率(Lv1なら4%、Lv10なら40%)
+  const rainbowChance = upgrades.color.level * 4;
+  const isRainbow = Math.random() * 100 < rainbowChance;
+  if (isRainbow) {
+    gem.classList.add("rainbow"); // 虹色に光るクラスを付ける
+  }
+
+  // ★ 画像さしかえコーナーに画像が設定されていたら、
+  //    SVG のかわりにその画像を表示する
+  let imageFile = gemImages[shapeNumber];
+  if (isRainbow && gemImages.rainbow !== null) {
+    imageFile = gemImages.rainbow; // 虹色用の画像があれば、そちらを優先
+  }
+  if (imageFile !== null) {
+    const img = document.createElement("img");
+    img.src = imageFile;
+    img.alt = "宝石";
+    img.className = "gem-svg"; // SVG と同じ大きさの設定を使い回す
+    gem.innerHTML = "";        // 中の SVG を消して…
+    gem.appendChild(img);      // …画像に入れかえる
+    gem.classList.add("has-image"); // 画像の色が変わらないようにする印
+  }
+
   // 大きさをランダムに決める(60〜110ピクセル)。
-  // さらに「大きさレベル」1つにつき +8ピクセル 大きくなる!
+  // さらに「大きさレベル」1つにつき +5ピクセルずつ、少しずつ大きくなる。
+  // ただし大きくなりすぎると画面いっぱいになってしまうので、
+  // 見た目の成長は Lv7(+30ピクセル)で打ち止め(ポイントは増え続ける!)
   // Math.random() は「0以上1未満のランダムな数」を出してくれる
-  const sizeBonus = (upgrades.size.level - 1) * 8;
-  const size = 60 + Math.random() * 50 + sizeBonus;
+  const growLevel = Math.min(upgrades.size.level - 1, 6);
+  const size = 60 + Math.random() * 50 + growLevel * 5;
   gem.style.width = size + "px";
 
   // 出現する場所をランダムに決める(エリアからはみ出さない範囲で)
@@ -265,13 +315,6 @@ function spawnGem() {
 
   // 色をランダムに変える(色相を0〜360度回す。style.css の --hue で使われる)
   gem.style.setProperty("--hue", Math.floor(Math.random() * 360) + "deg");
-
-  // 虹色のレア宝石にするかどうかの抽選。
-  // 「色レベル×4」%の確率(Lv1なら4%、Lv10なら40%)
-  const rainbowChance = upgrades.color.level * 4;
-  if (Math.random() * 100 < rainbowChance) {
-    gem.classList.add("rainbow"); // 虹色に光るクラスを付ける
-  }
 
   // この宝石がクリックされたら collectGem を動かす
   gem.addEventListener("click", function () {
@@ -292,9 +335,10 @@ function collectGem(gem) {
   }
 
   // 1. 何個ぶん集まるか計算する。
-  //    ふつうは「形レベル」個。虹色宝石ならさらに5倍!
+  //    1タップの獲得数 = 形レベル + (大きさレベル − 1)。
+  //    虹色宝石なら、さらに5倍!(くわしくは README.md の点数表を見てね)
   const isRainbow = gem.classList.contains("rainbow");
-  let amount = upgrades.shape.level;
+  let amount = upgrades.shape.level + (upgrades.size.level - 1);
   if (isRainbow) {
     amount = amount * 5;
     rainbowCount += 1;

@@ -35,41 +35,107 @@
            画面には常に2〜3個あって、タップすると効果音と共に消えて集まる -->
     </main>
 
+    <!-- 宝石のグラデーション(色のうつりかわり)の定義。
+         ここに置いた色を、下の型紙たちがみんなで使い回す -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="gemOutside" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"  stop-color="#fdf6ff"/>
+          <stop offset="35%" stop-color="#cfe6ff"/>
+          <stop offset="65%" stop-color="#ffd9f2"/>
+          <stop offset="100%" stop-color="#d8c8ff"/>
+        </linearGradient>
+        <linearGradient id="gemInside" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#ffffff"/>
+          <stop offset="100%" stop-color="#bfd9ff"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
     <!-- 宝石の「型紙」。<template> の中身は画面に表示されず、
-         script.js がこれをコピーして宝石を出現させる。
-         宝石の見た目を変えたいときはこの中の SVG を編集してね -->
-    <template id="gem-template">
-      <button class="gem" aria-label="宝石をあつめる">
+         script.js が形レベルに合った型紙をコピーして宝石を出現させる。
+         形Lv1=五角形、Lv2=四角形、Lv3=七角形、Lv4=ハート、Lv5〜=星型。
+         ★宝石を自分の画像に差し替えたいときは、script.js のいちばん上の
+           「画像さしかえコーナー」を見てね(README.md にも説明あり) -->
+
+    <!-- 形Lv1: 五角形の宝石 -->
+    <template id="gem-template-1">
+      <button class="gem" data-shape="五角形" aria-label="宝石をあつめる">
         <svg viewBox="0 0 200 200" class="gem-svg">
-          <!-- 宝石の外側の五角形 -->
           <polygon points="100,10 190,80 155,185 45,185 10,80"
                    fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
-          <!-- 宝石の内側の五角形(カットされた面に見せる) -->
           <polygon points="100,65 140,95 125,140 75,140 60,95"
                    fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
-          <!-- 外側と内側をつなぐ線(宝石のカット線) -->
+          <!-- 外側と内側をつなぐカット線 -->
           <line x1="100" y1="10"  x2="100" y2="65"  stroke="#ffffff" stroke-width="1.5"/>
           <line x1="190" y1="80"  x2="140" y2="95"  stroke="#ffffff" stroke-width="1.5"/>
           <line x1="155" y1="185" x2="125" y2="140" stroke="#ffffff" stroke-width="1.5"/>
           <line x1="45"  y1="185" x2="75"  y2="140" stroke="#ffffff" stroke-width="1.5"/>
           <line x1="10"  y1="80"  x2="60"  y2="95"  stroke="#ffffff" stroke-width="1.5"/>
-          <!-- キラッと光るハイライト -->
           <circle cx="70" cy="55" r="8" fill="#ffffff" opacity="0.9"/>
           <circle cx="150" cy="120" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
 
-          <!-- ここから下は「グラデーション(色のうつりかわり)」の定義 -->
-          <defs>
-            <linearGradient id="gemOutside" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%"  stop-color="#fdf6ff"/>
-              <stop offset="35%" stop-color="#cfe6ff"/>
-              <stop offset="65%" stop-color="#ffd9f2"/>
-              <stop offset="100%" stop-color="#d8c8ff"/>
-            </linearGradient>
-            <linearGradient id="gemInside" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"  stop-color="#ffffff"/>
-              <stop offset="100%" stop-color="#bfd9ff"/>
-            </linearGradient>
-          </defs>
+    <!-- 形Lv2: 四角形の宝石 -->
+    <template id="gem-template-2">
+      <button class="gem" data-shape="四角形" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <polygon points="30,30 170,30 170,170 30,170"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <polygon points="75,75 125,75 125,125 75,125"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="30"  y1="30"  x2="75"  y2="75"  stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="170" y1="30"  x2="125" y2="75"  stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="170" y1="170" x2="125" y2="125" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="30"  y1="170" x2="75"  y2="125" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="65" cy="55" r="8" fill="#ffffff" opacity="0.9"/>
+          <circle cx="145" cy="130" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv3: 七角形の宝石 -->
+    <template id="gem-template-3">
+      <button class="gem" data-shape="七角形" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <polygon points="100,10 170.4,43.9 187.7,120 139.1,181.1 60.9,181.1 12.3,120 29.6,43.9"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <polygon points="100,59.5 131.7,74.8 139.5,109 117.6,136.5 82.4,136.5 60.5,109 68.3,74.8"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="68" cy="50" r="8" fill="#ffffff" opacity="0.9"/>
+          <circle cx="150" cy="125" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv4: ハート型の宝石 -->
+    <template id="gem-template-4">
+      <button class="gem" data-shape="ハート" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <path d="M100 178 C 40 130, 12 92, 12 60 C 12 28, 40 14, 66 26 C 82 33, 94 46, 100 58 C 106 46, 118 33, 134 26 C 160 14, 188 28, 188 60 C 188 92, 160 130, 100 178 Z"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <!-- transform で同じハートを縮めて内側に置いている -->
+          <path d="M100 178 C 40 130, 12 92, 12 60 C 12 28, 40 14, 66 26 C 82 33, 94 46, 100 58 C 106 46, 118 33, 134 26 C 160 14, 188 28, 188 60 C 188 92, 160 130, 100 178 Z"
+                transform="translate(55 47) scale(0.45)"
+                fill="url(#gemInside)" stroke="#ffffff" stroke-width="2.5"/>
+          <circle cx="60" cy="55" r="8" fill="#ffffff" opacity="0.9"/>
+          <circle cx="140" cy="110" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv5〜: 星型の宝石 -->
+    <template id="gem-template-5">
+      <button class="gem" data-shape="星型" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <polygon points="100,10 123.5,67.6 185.6,72.2 138.0,112.4 152.9,172.8 100,140 47.1,172.8 62.0,112.4 14.4,72.2 76.5,67.6"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <polygon points="100,55 110.6,80.9 138.5,83 117.1,101.1 123.8,128.3 100,113.5 76.2,128.3 82.9,101.1 61.5,83 89.4,80.9"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="80" cy="60" r="7" fill="#ffffff" opacity="0.9"/>
+          <circle cx="135" cy="125" r="5" fill="#ffffff" opacity="0.7"/>
         </svg>
       </button>
     </template>
@@ -131,7 +197,7 @@
         <div class="upgrade-row">
           <div class="upgrade-info">
             <span class="upgrade-name">大きさ <span class="upgrade-level">Lv. <span id="upgrade-size-level">1</span></span></span>
-            <span class="upgrade-desc">宝石が大きくなって、タップしやすくなる</span>
+            <span class="upgrade-desc">1個で集まる数+1。宝石も少し大きくなる(大きさはLv7で上限)</span>
           </div>
           <button class="upgrade-button" id="upgrade-size-button">💎 <span id="upgrade-size-cost">10</span></button>
         </div>
@@ -139,7 +205,7 @@
         <div class="upgrade-row">
           <div class="upgrade-info">
             <span class="upgrade-name">形 <span class="upgrade-level">Lv. <span id="upgrade-shape-level">1</span></span></span>
-            <span class="upgrade-desc">カットが美しくなり、1個で集まる宝石が増える</span>
+            <span class="upgrade-desc">1個で集まる数+1。宝石の形も変わる(四角形→七角形→ハート→星型)</span>
           </div>
           <button class="upgrade-button" id="upgrade-shape-button">💎 <span id="upgrade-shape-cost">10</span></button>
         </div>
