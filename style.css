@@ -21,6 +21,7 @@ body {
   /* 使うフォント(ゲームっぽい明朝体) */
   font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
   color: #e8dcc8; /* 基本の文字色(クリーム色) */
+  -webkit-tap-highlight-color: transparent; /* スマホでタップした時の灰色の光を消す */
 }
 
 /* ---------- ゲーム全体の枠(スマホ縦画面の形) ---------- */
@@ -69,19 +70,23 @@ body {
     linear-gradient(180deg, #33202a 0%, #4a2530 55%, #2b1720 100%);
 }
 
-/* 大きな宝石(クリックするボタン) */
-.big-gem {
+/* 出現する宝石(クリックするボタン)。
+   位置(left, top)と大きさ(width)は script.js がランダムに決める */
+.gem {
   position: absolute;
-  top: 22%;
-  left: 12%;
-  width: 55%;
   background: none; /* ボタンのデフォルトの見た目を消す */
   border: none;
+  padding: 0;
   cursor: pointer;  /* マウスを乗せると指マークにする */
-  /* 宝石のまわりをふわっと光らせる */
-  filter: drop-shadow(0 0 25px rgba(255, 240, 255, 0.45));
-  /* ゆっくり浮かんで揺れるアニメーション(下のほうで定義) */
-  animation: float 4s ease-in-out infinite;
+  touch-action: manipulation; /* スマホでダブルタップ拡大が起きないようにする */
+  /* hue-rotate = 色相を回す(宝石ごとに色を変える)。
+     --hue の数字は script.js がランダムに入れる。
+     drop-shadow で宝石のまわりをふわっと光らせる */
+  filter: hue-rotate(var(--hue, 0deg)) drop-shadow(0 0 15px rgba(255, 240, 255, 0.45));
+  /* 「ぽんっと出現」と「ふわふわ浮かぶ」の2つのアニメーションを同時に付ける */
+  animation:
+    pop-in 0.3s ease-out,
+    float 4s ease-in-out infinite;
 }
 
 .gem-svg {
@@ -90,26 +95,29 @@ body {
   display: block;
 }
 
-/* 宝石をクリックした瞬間だけ、キュッと小さくする */
-.big-gem:active {
-  transform: scale(0.9);
+/* ぽんっと出現するアニメーション */
+@keyframes pop-in {
+  from { transform: scale(0); }   /* 大きさ0から… */
+  to   { transform: scale(1); }   /* 普通の大きさへ */
 }
 
 /* ふわふわ浮かぶアニメーションの中身 */
 @keyframes float {
   0%   { translate: 0 0; }
-  50%  { translate: 0 -12px; } /* 途中で少し上に */
+  50%  { translate: 0 -10px; } /* 途中で少し上に */
   100% { translate: 0 0; }
 }
 
-/* 右下の小さなクリスタル(飾り) */
-.small-crystal {
-  position: absolute;
-  bottom: 8%;
-  right: 18%;
-  width: 22%;
-  filter: drop-shadow(0 0 12px rgba(220, 235, 255, 0.5));
-  pointer-events: none; /* クリックできないようにする */
+/* 集めた瞬間の宝石(script.js がこのクラスを付ける)。
+   キラッと大きくなりながら消えていく */
+.gem.collected {
+  animation: collect 0.4s ease-out forwards;
+  pointer-events: none; /* 消えている途中に2回クリックできないようにする */
+}
+
+@keyframes collect {
+  from { transform: scale(1);   opacity: 1; }
+  to   { transform: scale(1.6); opacity: 0; }
 }
 
 /* 「+1」がふわっと浮かぶ演出(script.js がこのクラスの文字を作る) */

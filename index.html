@@ -28,14 +28,18 @@
     </header>
 
     <!-- ===============================
-         ② メインエリア(宝石をクリックする場所)
+         ② メインエリア(宝石が出現する場所)
          =============================== -->
     <main class="main-area" id="main-area">
+      <!-- 宝石は script.js がここにランダムで出現させる。
+           画面には常に2〜3個あって、タップすると効果音と共に消えて集まる -->
+    </main>
 
-      <!-- 大きな宝石(これをクリックすると宝石が増える!)
-           SVG というタグで図形を描いている。
-           あとで画像に差し替えたいときは README.md を見てね -->
-      <button class="big-gem" id="big-gem" aria-label="宝石をあつめる">
+    <!-- 宝石の「型紙」。<template> の中身は画面に表示されず、
+         script.js がこれをコピーして宝石を出現させる。
+         宝石の見た目を変えたいときはこの中の SVG を編集してね -->
+    <template id="gem-template">
+      <button class="gem" aria-label="宝石をあつめる">
         <svg viewBox="0 0 200 200" class="gem-svg">
           <!-- 宝石の外側の五角形 -->
           <polygon points="100,10 190,80 155,185 45,185 10,80"
@@ -68,22 +72,7 @@
           </defs>
         </svg>
       </button>
-
-      <!-- 右下の小さなクリスタル(飾り。クリックしても何も起きない) -->
-      <div class="small-crystal">
-        <svg viewBox="0 0 100 100">
-          <polygon points="30,90 20,40 40,55 50,10 60,55 80,35 70,90"
-                   fill="url(#crystalGrad)" stroke="#ffffff" stroke-width="1.5"/>
-          <defs>
-            <linearGradient id="crystalGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"  stop-color="#ffffff"/>
-              <stop offset="100%" stop-color="#a9c4e8"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
-
-    </main>
+    </template>
 
     <!-- ===============================
          ③ ステータスパネル(大きさ・形・色のゲージ)
