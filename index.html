@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <!-- 文字コードの設定(日本語を正しく表示するために必要) -->
+  <meta charset="UTF-8">
+  <!-- スマホで見たときに画面幅にぴったり合わせる設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ブラウザのタブに表示されるタイトル -->
+  <title>宝石あつめ</title>
+  <!-- 見た目(デザイン)のファイルを読み込む -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ゲーム全体を包む枠(スマホの縦画面のような形にする) -->
+  <div class="game">
+
+    <!-- ===============================
+         ① ヘッダー(いちばん上のバー)
+         =============================== -->
+    <header class="header">
+      <!-- 左側:ユーザーのレベル表示 -->
+      <div class="user-level">User Lv. <span id="user-level">1</span></div>
+      <!-- 右側:集めた宝石の数。数字の部分は script.js が書き換える -->
+      <div class="gem-counter">
+        あつめた宝石 <span class="gem-icon">💎</span> <span id="gem-count">0</span>
+      </div>
+    </header>
+
+    <!-- ===============================
+         ② メインエリア(宝石をクリックする場所)
+         =============================== -->
+    <main class="main-area" id="main-area">
+
+      <!-- 大きな宝石(これをクリックすると宝石が増える!)
+           SVG というタグで図形を描いている。
+           あとで画像に差し替えたいときは README.md を見てね -->
+      <button class="big-gem" id="big-gem" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <!-- 宝石の外側の五角形 -->
+          <polygon points="100,10 190,80 155,185 45,185 10,80"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <!-- 宝石の内側の五角形(カットされた面に見せる) -->
+          <polygon points="100,65 140,95 125,140 75,140 60,95"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <!-- 外側と内側をつなぐ線(宝石のカット線) -->
+          <line x1="100" y1="10"  x2="100" y2="65"  stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="190" y1="80"  x2="140" y2="95"  stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="155" y1="185" x2="125" y2="140" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="45"  y1="185" x2="75"  y2="140" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="10"  y1="80"  x2="60"  y2="95"  stroke="#ffffff" stroke-width="1.5"/>
+          <!-- キラッと光るハイライト -->
+          <circle cx="70" cy="55" r="8" fill="#ffffff" opacity="0.9"/>
+          <circle cx="150" cy="120" r="5" fill="#ffffff" opacity="0.7"/>
+
+          <!-- ここから下は「グラデーション(色のうつりかわり)」の定義 -->
+          <defs>
+            <linearGradient id="gemOutside" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"  stop-color="#fdf6ff"/>
+              <stop offset="35%" stop-color="#cfe6ff"/>
+              <stop offset="65%" stop-color="#ffd9f2"/>
+              <stop offset="100%" stop-color="#d8c8ff"/>
+            </linearGradient>
+            <linearGradient id="gemInside" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#bfd9ff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </button>
+
+      <!-- 右下の小さなクリスタル(飾り。クリックしても何も起きない) -->
+      <div class="small-crystal">
+        <svg viewBox="0 0 100 100">
+          <polygon points="30,90 20,40 40,55 50,10 60,55 80,35 70,90"
+                   fill="url(#crystalGrad)" stroke="#ffffff" stroke-width="1.5"/>
+          <defs>
+            <linearGradient id="crystalGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#a9c4e8"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+    </main>
+
+    <!-- ===============================
+         ③ ステータスパネル(大きさ・形・色のゲージ)
+         ※ 今はまだ表示だけ。レベルアップ機能はこれから作る
+         =============================== -->
+    <section class="status-panel">
+      <button class="lvup-button" id="lvup-button">Lv UP</button>
+
+      <div class="status-rows">
+        <!-- 1行分:名前+ゲージ+レベル表示、が3つ並ぶ -->
+        <div class="status-row">
+          <span class="status-name">大きさ</span>
+          <div class="status-gauge"><div class="status-gauge-fill" style="width: 15%"></div></div>
+          <span class="status-level">Lv. <span id="size-level">1</span></span>
+        </div>
+        <div class="status-row">
+          <span class="status-name">形</span>
+          <div class="status-gauge"><div class="status-gauge-fill" style="width: 15%"></div></div>
+          <span class="status-level">Lv. <span id="shape-level">1</span></span>
+        </div>
+        <div class="status-row">
+          <span class="status-name">色</span>
+          <div class="status-gauge"><div class="status-gauge-fill" style="width: 15%"></div></div>
+          <span class="status-level">Lv. <span id="color-level">1</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================
+         ④ 下のメニューボタン
+         ※ 今はまだ「準備中」。押すとメッセージが出るだけ
+         =============================== -->
+    <nav class="menu">
+      <button class="menu-button" id="menu-atsumeru">あつめる 🧲</button>
+      <button class="menu-button" id="menu-store">ストア 🎁</button>
+      <button class="menu-button" id="menu-story">ストーリー 📖</button>
+    </nav>
+    <button class="settings-bar" id="menu-settings">せってい</button>
+
+    <!-- ===============================
+         ⑤ PR枠(広告を入れる予定の場所)
+         =============================== -->
+    <footer class="pr-banner">PR</footer>
+
+  </div>
+
+  <!-- ゲームの動き(プログラム)のファイルを読み込む。
+       body の最後に書くと、画面が全部できてから動くので安全 -->
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+/* =========================================================
+   style.css — ゲームの見た目(デザイン)を決めるファイル
+   「セレクタ { プロパティ: 値; }」という形で書く。
+   例: .header { color: red; } → headerクラスの文字を赤にする
+   ========================================================= */
+
+/* ---------- ページ全体の基本設定 ---------- */
+* {
+  /* 余白の計算をわかりやすくするおまじない */
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* ゲームの外側の背景色(黒っぽい色) */
+  background-color: #1a1216;
+  /* ゲーム画面を左右中央に置く */
+  display: flex;
+  justify-content: center;
+  /* 使うフォント(ゲームっぽい明朝体) */
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  color: #e8dcc8; /* 基本の文字色(クリーム色) */
+}
+
+/* ---------- ゲーム全体の枠(スマホ縦画面の形) ---------- */
+.game {
+  width: 100%;
+  max-width: 420px;      /* 横幅はスマホくらいまで */
+  min-height: 100vh;     /* 縦は画面いっぱい */
+  display: flex;
+  flex-direction: column; /* 中身を縦に並べる */
+  background: linear-gradient(180deg, #2a1a20 0%, #3d2028 45%, #241419 100%);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- ① ヘッダー ---------- */
+.header {
+  display: flex;
+  justify-content: space-between; /* 左右に振り分ける */
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #3a2b22 0%, #241a14 100%);
+  border-bottom: 2px solid #6b5638; /* 下に金色っぽい線 */
+  font-size: 18px;
+}
+
+.gem-counter {
+  font-size: 16px;
+}
+
+/* 宝石の数の数字を少し目立たせる */
+#gem-count {
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff6e0;
+}
+
+/* ---------- ② メインエリア(宝石のある場所) ---------- */
+.main-area {
+  position: relative; /* 中の宝石を自由な位置に置くための設定 */
+  flex: 1;            /* 余った縦スペースを全部使う */
+  min-height: 340px;
+  overflow: hidden;   /* はみ出したものを隠す */
+  /* 窓から月明かりが差すようなイメージのグラデーション */
+  background:
+    radial-gradient(circle at 75% 30%, rgba(120, 140, 190, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 20% 60%, rgba(90, 60, 70, 0.5) 0%, transparent 60%),
+    linear-gradient(180deg, #33202a 0%, #4a2530 55%, #2b1720 100%);
+}
+
+/* 大きな宝石(クリックするボタン) */
+.big-gem {
+  position: absolute;
+  top: 22%;
+  left: 12%;
+  width: 55%;
+  background: none; /* ボタンのデフォルトの見た目を消す */
+  border: none;
+  cursor: pointer;  /* マウスを乗せると指マークにする */
+  /* 宝石のまわりをふわっと光らせる */
+  filter: drop-shadow(0 0 25px rgba(255, 240, 255, 0.45));
+  /* ゆっくり浮かんで揺れるアニメーション(下のほうで定義) */
+  animation: float 4s ease-in-out infinite;
+}
+
+.gem-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 宝石をクリックした瞬間だけ、キュッと小さくする */
+.big-gem:active {
+  transform: scale(0.9);
+}
+
+/* ふわふわ浮かぶアニメーションの中身 */
+@keyframes float {
+  0%   { translate: 0 0; }
+  50%  { translate: 0 -12px; } /* 途中で少し上に */
+  100% { translate: 0 0; }
+}
+
+/* 右下の小さなクリスタル(飾り) */
+.small-crystal {
+  position: absolute;
+  bottom: 8%;
+  right: 18%;
+  width: 22%;
+  filter: drop-shadow(0 0 12px rgba(220, 235, 255, 0.5));
+  pointer-events: none; /* クリックできないようにする */
+}
+
+/* 「+1」がふわっと浮かぶ演出(script.js がこのクラスの文字を作る) */
+.plus-one {
+  position: absolute;
+  color: #fff6d5;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(255, 220, 150, 0.9);
+  pointer-events: none; /* 文字がクリックの邪魔をしないように */
+  animation: rise 0.8s ease-out forwards;
+}
+
+/* 上にのぼりながら消えていくアニメーション */
+@keyframes rise {
+  from { opacity: 1; translate: 0 0; }
+  to   { opacity: 0; translate: 0 -60px; }
+}
+
+/* ---------- ③ ステータスパネル ---------- */
+.status-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 12px;
+  padding: 16px 14px;
+  /* 木の板のような茶色い背景と、金色っぽい二重枠 */
+  background: linear-gradient(180deg, #4a3526 0%, #33241a 100%);
+  border: 3px solid #8a6d45;
+  outline: 1px solid #3a2b1c;
+  border-radius: 10px;
+}
+
+.lvup-button {
+  padding: 12px 14px;
+  font-family: inherit; /* まわりと同じフォントを使う */
+  font-size: 18px;
+  font-weight: bold;
+  color: #f0e2c8;
+  background: linear-gradient(180deg, #5a4430 0%, #3a2a1c 100%);
+  border: 2px solid #a08050;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap; /* 文字を折り返さない */
+}
+
+.lvup-button:active {
+  transform: scale(0.95); /* 押した感を出す */
+}
+
+/* ゲージ3行をまとめる箱 */
+.status-rows {
+  flex: 1; /* 残りの横幅を全部使う */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 1行(名前+ゲージ+レベル)を横に並べる */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-name {
+  width: 64px; /* 名前の幅をそろえて、ゲージの位置を合わせる */
+  font-size: 18px;
+}
+
+/* ゲージの外枠(暗い溝) */
+.status-gauge {
+  flex: 1;
+  height: 14px;
+  background: #1c130d;
+  border: 1px solid #6b5638;
+  border-radius: 7px;
+  overflow: hidden; /* 中身がはみ出さないように */
+}
+
+/* ゲージの中身(たまっている部分)。width の % で長さが変わる */
+.status-gauge-fill {
+  height: 100%;
+  background: linear-gradient(180deg, #fff8e8 0%, #d8c8a8 100%);
+  border-radius: 7px;
+}
+
+.status-level {
+  width: 48px;
+  font-size: 16px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---------- ④ 下のメニュー ---------- */
+.menu {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #3a2b22 0%, #241a14 100%);
+  border-top: 2px solid #6b5638;
+}
+
+.menu-button {
+  flex: 1; /* 3つのボタンを同じ幅で並べる */
+  padding: 12px 4px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: bold;
+  color: #f0e2c8;
+  background: linear-gradient(180deg, #4a3526 0%, #2b1e14 100%);
+  border: 2px solid #8a6d45;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu-button:active {
+  transform: scale(0.95);
+}
+
+/* 「せってい」の横長バー */
+.settings-bar {
+  margin: 0 10px 8px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  color: #d8ccb8;
+  background: linear-gradient(180deg, #55606d 0%, #303841 100%);
+  border: 2px solid #7a8694;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ---------- ⑤ PR枠 ---------- */
+.pr-banner {
+  padding: 22px;
+  text-align: center;
+  font-size: 24px;
+  letter-spacing: 4px; /* 文字の間を広げる */
+  color: #cfc4ae;
+  background: #17100c;
+  border-top: 2px solid #6b5638;
+}
