@@ -254,12 +254,6 @@ function showPlusOne(x, y, amount, isRainbow) {
 
 /* ---------- 宝石を1個、ランダムな場所に出現させる ---------- */
 
-// いまの「形レベル」に合った番号を返す(形は5種類。Lv5以上はずっと星型)
-// Math.min(a, b) は「a と b の小さいほう」を返す
-function currentShapeNumber() {
-  return Math.min(upgrades.shape.level, 5);
-}
-
 function spawnGem() {
   // すでに画面に MAX_GEMS 個あったら、これ以上は出さない
   const gemsOnScreen = mainArea.querySelectorAll(".gem").length;
@@ -267,10 +261,25 @@ function spawnGem() {
     return; // 「return」= ここで関数を終わりにする
   }
 
-  // 形レベルに合った型紙(template)を選んで、コピーして宝石ボタンを作る
-  const shapeNumber = currentShapeNumber();
+  // ★ この宝石のレベルを抽選する ★
+  // 強化すると新しいレベルの宝石が「追加」されるイメージで、
+  // いままでのレベルの宝石もぜんぶ出てくる!
+  // 例: 形Lv3 なら、形Lv1・Lv2・Lv3 の宝石が同じ確率でランダムに出る。
+  // Math.floor(Math.random() * 3) は 0・1・2 のどれかなので、+1 して 1〜3 にする
+  const gemShapeLevel = Math.floor(Math.random() * upgrades.shape.level) + 1;
+  const gemSizeLevel = Math.floor(Math.random() * upgrades.size.level) + 1;
+
+  // 形レベルに合った型紙(template)を選んで、コピーして宝石ボタンを作る。
+  // 形は5種類なので、Lv5以上はずっと星型。
+  // Math.min(a, b) は「a と b の小さいほう」を返す
+  const shapeNumber = Math.min(gemShapeLevel, 5);
   const gemTemplate = document.getElementById("gem-template-" + shapeNumber);
   const gem = gemTemplate.content.firstElementChild.cloneNode(true);
+
+  // 抽選したレベルを、宝石自身にメモしておく(dataset = 部品に付けられるメモ)。
+  // タップされたときの点数計算は、このメモを見て行う
+  gem.dataset.shapeLevel = gemShapeLevel;
+  gem.dataset.sizeLevel = gemSizeLevel;
 
   // 虹色のレア宝石にするかどうかの抽選。
   // 「色レベル×4」%の確率(Lv1なら4%、Lv10なら40%)
@@ -297,11 +306,11 @@ function spawnGem() {
   }
 
   // 大きさをランダムに決める(60〜110ピクセル)。
-  // さらに「大きさレベル」1つにつき +5ピクセルずつ、少しずつ大きくなる。
+  // さらに、この宝石の「大きさレベル」1つにつき +5ピクセルずつ大きくなる。
   // ただし大きくなりすぎると画面いっぱいになってしまうので、
   // 見た目の成長は Lv7(+30ピクセル)で打ち止め(ポイントは増え続ける!)
   // Math.random() は「0以上1未満のランダムな数」を出してくれる
-  const growLevel = Math.min(upgrades.size.level - 1, 6);
+  const growLevel = Math.min(gemSizeLevel - 1, 6);
   const size = 60 + Math.random() * 50 + growLevel * 5;
   gem.style.width = size + "px";
 
@@ -335,10 +344,14 @@ function collectGem(gem) {
   }
 
   // 1. 何個ぶん集まるか計算する。
-  //    1タップの獲得数 = 形レベル + (大きさレベル − 1)。
+  //    宝石には出現したときに自分のレベルがメモしてある(dataset)ので、
+  //    それを読み出して使う。メモは文字なので Number() で数字に戻す。
+  //    獲得数 = その宝石の形Lv + (その宝石の大きさLv − 1)。
   //    虹色宝石なら、さらに5倍!(くわしくは README.md の点数表を見てね)
+  const gemShapeLevel = Number(gem.dataset.shapeLevel);
+  const gemSizeLevel = Number(gem.dataset.sizeLevel);
   const isRainbow = gem.classList.contains("rainbow");
-  let amount = upgrades.shape.level + (upgrades.size.level - 1);
+  let amount = gemShapeLevel + (gemSizeLevel - 1);
   if (isRainbow) {
     amount = amount * 5;
     rainbowCount += 1;
