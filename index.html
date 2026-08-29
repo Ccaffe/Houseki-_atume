@@ -36,18 +36,20 @@
     </main>
 
     <!-- 宝石のグラデーション(色のうつりかわり)の定義。
-         ここに置いた色を、下の型紙たちがみんなで使い回す -->
+         ここに置いた色を、下の型紙たちがみんなで使い回す。
+         基本の色は「赤」。ここから style.css の hue-rotate(色相回し)で
+         オレンジ→黄色→緑→…→青 と、色レベルに合わせて変化させる -->
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
       <defs>
         <linearGradient id="gemOutside" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"  stop-color="#fdf6ff"/>
-          <stop offset="35%" stop-color="#cfe6ff"/>
-          <stop offset="65%" stop-color="#ffd9f2"/>
-          <stop offset="100%" stop-color="#d8c8ff"/>
+          <stop offset="0%"  stop-color="#fff5f5"/>
+          <stop offset="35%" stop-color="#ffd0d0"/>
+          <stop offset="65%" stop-color="#ff9c9c"/>
+          <stop offset="100%" stop-color="#e06565"/>
         </linearGradient>
         <linearGradient id="gemInside" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"  stop-color="#ffffff"/>
-          <stop offset="100%" stop-color="#bfd9ff"/>
+          <stop offset="100%" stop-color="#ffb5b5"/>
         </linearGradient>
       </defs>
     </svg>
@@ -213,7 +215,7 @@
         <div class="upgrade-row">
           <div class="upgrade-info">
             <span class="upgrade-name">色 <span class="upgrade-level">Lv. <span id="upgrade-color-level">1</span></span></span>
-            <span class="upgrade-desc">虹色のレア宝石(5倍!)が出やすくなる</span>
+            <span class="upgrade-desc">新しい色の高得点な宝石が追加される(赤→オレンジ→黄→緑→青)</span>
           </div>
           <button class="upgrade-button" id="upgrade-color-button">💎 <span id="upgrade-color-cost">10</span></button>
         </div>
@@ -235,7 +237,6 @@
           <div class="stats-row"><span>あつめた宝石の総数</span><span id="stat-total">0</span></div>
           <div class="stats-row"><span>タップした回数</span><span id="stat-taps">0</span></div>
           <div class="stats-row"><span>強化につかった宝石</span><span id="stat-spent">0</span></div>
-          <div class="stats-row"><span>虹色の宝石をあつめた数</span><span id="stat-rainbow">0</span></div>
         </div>
 
         <button class="reset-button" id="reset-button">データをリセット</button>

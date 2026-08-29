@@ -28,12 +28,26 @@ body {
 .game {
   position: relative; /* ポップアップ画面をこの枠の中に重ねるための設定 */
   width: 100%;
-  max-width: 420px;      /* 横幅はスマホくらいまで */
-  min-height: 100vh;     /* 縦は画面いっぱい */
+  max-width: 420px;   /* 横幅はスマホくらいまで */
+  /* 縦は画面の高さに「ぴったり」合わせる。
+     こうするとページがスクロールせず、宝石が必ず画面内に出る */
+  height: 100vh;
+  height: 100dvh;     /* スマホのアドレスバーを除いた高さ(対応ブラウザ用) */
   display: flex;
   flex-direction: column; /* 中身を縦に並べる */
   background: linear-gradient(180deg, #2a1a20 0%, #3d2028 45%, #241419 100%);
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+/* メインエリア以外の部分は、画面が狭くてもつぶれないようにする。
+   (flex-shrink: 0 = 「縮まないで」というお願い。
+   そのぶん、メインエリアだけが伸び縮みして高さを調整する) */
+.header,
+.status-panel,
+.menu,
+.settings-bar,
+.pr-banner {
+  flex-shrink: 0;
 }
 
 /* ---------- ① ヘッダー ---------- */
@@ -62,7 +76,7 @@ body {
 .main-area {
   position: relative; /* 中の宝石を自由な位置に置くための設定 */
   flex: 1;            /* 余った縦スペースを全部使う */
-  min-height: 340px;
+  min-height: 120px;  /* 画面がせまくても、最低このぶんは宝石エリアを残す */
   overflow: hidden;   /* はみ出したものを隠す */
   /* 窓から月明かりが差すようなイメージのグラデーション */
   background:
@@ -80,8 +94,9 @@ body {
   padding: 0;
   cursor: pointer;  /* マウスを乗せると指マークにする */
   touch-action: manipulation; /* スマホでダブルタップ拡大が起きないようにする */
-  /* hue-rotate = 色相を回す(宝石ごとに色を変える)。
-     --hue の数字は script.js がランダムに入れる。
+  /* hue-rotate = 色相を回す(宝石の色を変える)。
+     基本の赤から、--hue の角度ぶんだけ色相環を回る(青は240度)。
+     --hue の数字は script.js が宝石の「色レベル」から計算して入れる。
      drop-shadow で宝石のまわりをふわっと光らせる */
   filter: hue-rotate(var(--hue, 0deg)) drop-shadow(0 0 15px rgba(255, 240, 255, 0.45));
   /* 「ぽんっと出現」と「ふわふわ浮かぶ」の2つのアニメーションを同時に付ける */
@@ -114,20 +129,6 @@ body {
   to   { transform: scale(1.6); opacity: 0; }
 }
 
-/* 虹色のレア宝石(色レベルを上げると出やすくなる)。
-   色相をぐるぐる回して、キラキラ虹色に光らせる */
-.gem.rainbow {
-  animation:
-    pop-in 0.3s ease-out,
-    float 4s ease-in-out infinite,
-    rainbow-spin 1.5s linear infinite;
-}
-
-@keyframes rainbow-spin {
-  from { filter: hue-rotate(0deg)   drop-shadow(0 0 22px rgba(255, 255, 255, 0.8)); }
-  to   { filter: hue-rotate(360deg) drop-shadow(0 0 22px rgba(255, 255, 255, 0.8)); }
-}
-
 /* 自分の画像に差し替えた宝石(script.js が has-image クラスを付ける)。
    色変え(hue-rotate)をかけると画像の色まで変わってしまうので、
    光る影だけにして、画像は元の色のまま表示する */
@@ -140,7 +141,7 @@ body {
 
 /* 集めた瞬間の宝石(script.js がこのクラスを付ける)。
    キラッと大きくなりながら消えていく。
-   ※ この指定は rainbow や has-image より「あと」に書くこと!
+   ※ この指定は has-image より「あと」に書くこと!
       CSS は同じ強さの指定なら後に書いたほうが勝つので、
       どの宝石でも「消えるアニメーション」が最優先になる */
 .gem.collected {
@@ -163,12 +164,6 @@ body {
 @keyframes rise {
   from { opacity: 1; translate: 0 0; }
   to   { opacity: 0; translate: 0 -60px; }
-}
-
-/* 虹色の宝石を集めたときの「+○」は金色で大きく */
-.plus-one.plus-rainbow {
-  color: #ffe066;
-  font-size: 36px;
 }
 
 /* ---------- ③ ステータスパネル ---------- */

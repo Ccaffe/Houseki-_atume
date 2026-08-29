@@ -20,12 +20,11 @@
    null のままの形は、HTML の型紙(SVG)で描いた宝石になる
    ========================================================= */
 const gemImages = {
-  1: null,       // 形Lv1: 五角形の宝石のかわりに使う画像
-  2: null,       // 形Lv2: 四角形
-  3: null,       // 形Lv3: 七角形
-  4: null,       // 形Lv4: ハート型
-  5: null,       // 形Lv5〜: 星型
-  rainbow: null, // 虹色のレア宝石(例: "rainbow.png")
+  1: null, // 形Lv1: 五角形の宝石のかわりに使う画像(例: "gem.png")
+  2: null, // 形Lv2: 四角形
+  3: null, // 形Lv3: 七角形
+  4: null, // 形Lv4: ハート型
+  5: null, // 形Lv5〜: 星型
 };
 
 
@@ -36,11 +35,14 @@ let gemCount = 0;     // いま持っている宝石(強化に使うと減る)
 let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減らない)
 let tapCount = 0;     // 宝石をタップした回数(統計用)
 let spentGems = 0;    // 強化につかった宝石の数(統計用)
-let rainbowCount = 0; // 虹色の宝石を集めた数(統計用)
 
 // 「const」は「変わらない値」を作る書き方
 const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数
 const MAX_LEVEL = 10; // 強化レベルの上限
+
+// 保存データのバージョン。ゲームのルールを大きく変えたときに
+// この数字を上げると、みんなの古い保存データが1回だけ自動リセットされる
+const SAVE_VERSION = 2;
 
 // 3種類の強化のデータをひとまとめにしたもの。
 // upgrades.size.level のように「.」でつないで中身を取り出せる
@@ -125,11 +127,11 @@ function updateUpgradeScreen() {
 function saveGame() {
   try {
     const data = {
+      version: SAVE_VERSION, // どのバージョンで保存したかのメモ
       gemCount: gemCount,
       totalGems: totalGems,
       tapCount: tapCount,
       spentGems: spentGems,
-      rainbowCount: rainbowCount,
       sizeLevel: upgrades.size.level,
       shapeLevel: upgrades.shape.level,
       colorLevel: upgrades.color.level,
@@ -143,25 +145,25 @@ function saveGame() {
 function loadGame() {
   try {
     const savedText = localStorage.getItem("housekiSave");
-    if (savedText !== null) {
-      const data = JSON.parse(savedText);
-      // 「data.gemCount || 0」は「データがなければ 0 にする」という保険
-      gemCount = data.gemCount || 0;
-      totalGems = data.totalGems || 0;
-      tapCount = data.tapCount || 0;
-      spentGems = data.spentGems || 0;
-      rainbowCount = data.rainbowCount || 0;
-      upgrades.size.level = data.sizeLevel || 1;
-      upgrades.shape.level = data.shapeLevel || 1;
-      upgrades.color.level = data.colorLevel || 1;
-    } else {
-      // 昔のバージョンの保存データ(宝石の数だけ)が残っていたら引き継ぐ
-      const oldSave = localStorage.getItem("gemCount");
-      if (oldSave !== null) {
-        gemCount = Number(oldSave);
-        totalGems = gemCount;
-      }
+    if (savedText === null) {
+      return; // 保存データがなければ、最初からスタート
     }
+    const data = JSON.parse(savedText);
+
+    // 保存データのバージョンが今のゲームと違ったら、読み込まない。
+    // ルールが大きく変わったときに、みんな最初からやり直しになる仕組み
+    if (data.version !== SAVE_VERSION) {
+      return;
+    }
+
+    // 「data.gemCount || 0」は「データがなければ 0 にする」という保険
+    gemCount = data.gemCount || 0;
+    totalGems = data.totalGems || 0;
+    tapCount = data.tapCount || 0;
+    spentGems = data.spentGems || 0;
+    upgrades.size.level = data.sizeLevel || 1;
+    upgrades.shape.level = data.shapeLevel || 1;
+    upgrades.color.level = data.colorLevel || 1;
   } catch (e) {
     // 読み込めない環境では最初からスタート
   }
@@ -229,16 +231,12 @@ function playUpgradeSound() {
 
 
 /* ---------- 「+○」がふわっと飛ぶ演出 ---------- */
-// x, y は表示する場所、amount は増えた数、isRainbow は虹色宝石かどうか
+// x, y は表示する場所、amount は増えた数
 
-function showPlusOne(x, y, amount, isRainbow) {
+function showPlusOne(x, y, amount) {
   const plusOne = document.createElement("span");
   plusOne.textContent = "+" + amount;
   plusOne.className = "plus-one"; // style.css のアニメーションが付く
-  if (isRainbow) {
-    // 虹色宝石のときは金色で大きく表示するクラスを追加する
-    plusOne.classList.add("plus-rainbow");
-  }
 
   plusOne.style.left = (x - 15) + "px";
   plusOne.style.top = (y - 30) + "px";
@@ -268,6 +266,7 @@ function spawnGem() {
   // Math.floor(Math.random() * 3) は 0・1・2 のどれかなので、+1 して 1〜3 にする
   const gemShapeLevel = Math.floor(Math.random() * upgrades.shape.level) + 1;
   const gemSizeLevel = Math.floor(Math.random() * upgrades.size.level) + 1;
+  const gemColorLevel = Math.floor(Math.random() * upgrades.color.level) + 1;
 
   // 形レベルに合った型紙(template)を選んで、コピーして宝石ボタンを作る。
   // 形は5種類なので、Lv5以上はずっと星型。
@@ -280,21 +279,11 @@ function spawnGem() {
   // タップされたときの点数計算は、このメモを見て行う
   gem.dataset.shapeLevel = gemShapeLevel;
   gem.dataset.sizeLevel = gemSizeLevel;
-
-  // 虹色のレア宝石にするかどうかの抽選。
-  // 「色レベル×4」%の確率(Lv1なら4%、Lv10なら40%)
-  const rainbowChance = upgrades.color.level * 4;
-  const isRainbow = Math.random() * 100 < rainbowChance;
-  if (isRainbow) {
-    gem.classList.add("rainbow"); // 虹色に光るクラスを付ける
-  }
+  gem.dataset.colorLevel = gemColorLevel;
 
   // ★ 画像さしかえコーナーに画像が設定されていたら、
   //    SVG のかわりにその画像を表示する
-  let imageFile = gemImages[shapeNumber];
-  if (isRainbow && gemImages.rainbow !== null) {
-    imageFile = gemImages.rainbow; // 虹色用の画像があれば、そちらを優先
-  }
+  const imageFile = gemImages[shapeNumber];
   if (imageFile !== null) {
     const img = document.createElement("img");
     img.src = imageFile;
@@ -314,16 +303,28 @@ function spawnGem() {
   const size = 60 + Math.random() * 50 + growLevel * 5;
   gem.style.width = size + "px";
 
-  // 出現する場所をランダムに決める(エリアからはみ出さない範囲で)
+  // 出現する場所をランダムに決める。
+  // 宝石はエリアの端から「半分まで」はみ出してもOKというルール。
+  // 位置は宝石の左上の角なので、いちばん左は -size/2(左半分がはみ出す)、
+  // いちばん右は エリアの幅 - size/2(右半分がはみ出す)まで許す
   const areaWidth = mainArea.clientWidth;
   const areaHeight = mainArea.clientHeight;
-  const x = 10 + Math.random() * (areaWidth - size - 20);
-  const y = 10 + Math.random() * (areaHeight - size - 20);
+  const minX = -size / 2;
+  const maxX = areaWidth - size / 2;
+  const minY = -size / 2;
+  const maxY = areaHeight - size / 2;
+  const x = minX + Math.random() * (maxX - minX);
+  const y = minY + Math.random() * (maxY - minY);
   gem.style.left = x + "px";
   gem.style.top = y + "px";
 
-  // 色をランダムに変える(色相を0〜360度回す。style.css の --hue で使われる)
-  gem.style.setProperty("--hue", Math.floor(Math.random() * 360) + "deg");
+  // 色を決める。基本の色は「赤」で、色レベルが高い宝石ほど
+  // 色相環(赤→オレンジ→黄→緑→青)を進んだ色になる。
+  // 赤(0度)から青(240度)までを9歩で進むので、1歩 = 240 ÷ 9 ≒ 26.7度。
+  // 例: 色Lv1 = 0度(赤)、色Lv5 ≒ 107度(緑)、色Lv10 = 240度(青)
+  const hueStep = 240 / (MAX_LEVEL - 1);
+  const hue = (gemColorLevel - 1) * hueStep;
+  gem.style.setProperty("--hue", hue + "deg"); // style.css の hue-rotate で使われる
 
   // この宝石がクリックされたら collectGem を動かす
   gem.addEventListener("click", function () {
@@ -346,16 +347,12 @@ function collectGem(gem) {
   // 1. 何個ぶん集まるか計算する。
   //    宝石には出現したときに自分のレベルがメモしてある(dataset)ので、
   //    それを読み出して使う。メモは文字なので Number() で数字に戻す。
-  //    獲得数 = その宝石の形Lv + (その宝石の大きさLv − 1)。
-  //    虹色宝石なら、さらに5倍!(くわしくは README.md の点数表を見てね)
+  //    獲得数 = 形Lv + (大きさLv − 1) + (色Lv − 1)
+  //    ぜんぶ「その宝石自身」のレベル。くわしくは README.md の点数表を見てね
   const gemShapeLevel = Number(gem.dataset.shapeLevel);
   const gemSizeLevel = Number(gem.dataset.sizeLevel);
-  const isRainbow = gem.classList.contains("rainbow");
-  let amount = gemShapeLevel + (gemSizeLevel - 1);
-  if (isRainbow) {
-    amount = amount * 5;
-    rainbowCount += 1;
-  }
+  const gemColorLevel = Number(gem.dataset.colorLevel);
+  const amount = gemShapeLevel + (gemSizeLevel - 1) + (gemColorLevel - 1);
 
   // 2. 宝石を増やして、統計も数える
   gemCount += amount;
@@ -372,7 +369,7 @@ function collectGem(gem) {
   // 5. 宝石のあった場所(真ん中)に「+○」を飛ばす
   const centerX = gem.offsetLeft + gem.clientWidth / 2;
   const centerY = gem.offsetTop + gem.clientHeight / 2;
-  showPlusOne(centerX, centerY, amount, isRainbow);
+  showPlusOne(centerX, centerY, amount);
 
   // 6. 「collected」クラスを付けると、キラッと消えるアニメーションが始まる
   gem.classList.add("collected");
@@ -425,7 +422,6 @@ function openSettings() {
   document.getElementById("stat-total").textContent = totalGems.toLocaleString();
   document.getElementById("stat-taps").textContent = tapCount.toLocaleString();
   document.getElementById("stat-spent").textContent = spentGems.toLocaleString();
-  document.getElementById("stat-rainbow").textContent = rainbowCount.toLocaleString();
 
   // hidden を外すと画面に現れる
   settingsOverlay.hidden = false;
