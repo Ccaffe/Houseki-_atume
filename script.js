@@ -3,22 +3,41 @@
 
    このゲームの流れ:
    1. 画面に宝石が2〜3個、ランダムな場所に出現する
-   2. 宝石をクリック(タップ)すると、効果音と共にキラッと消える
-   3. 宝石の数(gemCount)が 1 増えて、画面の数字が新しくなる
-   4. 少し待つと、また新しい宝石が出現する
-   5. 数はブラウザに保存される(次に開いたときも残る)
+   2. 宝石をタップすると、効果音と共にキラッと消えて集まる
+   3. 「Lv UP」ボタンで、集めた宝石を使って強化ができる
+      ・大きさ … 宝石が大きくなってタップしやすくなる
+      ・形   … 1個で集まる宝石の数が増える
+      ・色   … 虹色のレア宝石(5倍)が出やすくなる
+   4. 「せってい」から、これまでの統計が見られる
+   5. データはブラウザに保存される(次に開いたときも残る)
    ========================================================= */
 
 /* ---------- ゲームのデータ(変数) ---------- */
 
-// 集めた宝石の数。「let」は「あとで中身が変わる変数」を作る書き方
-let gemCount = 0;
+// 「let」は「あとで中身が変わる変数」を作る書き方
+let gemCount = 0;     // いま持っている宝石(強化に使うと減る)
+let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減らない)
+let tapCount = 0;     // 宝石をタップした回数(統計用)
+let spentGems = 0;    // 強化につかった宝石の数(統計用)
+let rainbowCount = 0; // 虹色の宝石を集めた数(統計用)
 
-// ユーザーのレベル(今はまだ 1 のまま。レベルアップ機能はこれから作る)
-let userLevel = 1;
+// 「const」は「変わらない値」を作る書き方
+const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数
+const MAX_LEVEL = 10; // 強化レベルの上限
 
-// 画面に同時に出る宝石の最大数。「const」は「変わらない値」を作る書き方
-const MAX_GEMS = 3;
+// 3種類の強化のデータをひとまとめにしたもの。
+// upgrades.size.level のように「.」でつないで中身を取り出せる
+const upgrades = {
+  size:  { level: 1 }, // 大きさ
+  shape: { level: 1 }, // 形
+  color: { level: 1 }, // 色
+};
+
+// 次のレベルに上げるのに必要な宝石の数。
+// レベル1→2 は 10個、2→3 は 20個…と、レベル×10 で増えていく
+function upgradeCost(level) {
+  return level * 10;
+}
 
 
 /* ---------- 画面の部品を取ってくる ---------- */
@@ -28,27 +47,78 @@ const gemCountDisplay = document.getElementById("gem-count"); // 宝石の数の
 const userLevelDisplay = document.getElementById("user-level"); // レベルの表示
 const mainArea = document.getElementById("main-area");         // 宝石が出るエリア
 const gemTemplate = document.getElementById("gem-template");   // 宝石の型紙
+const upgradeOverlay = document.getElementById("upgrade-overlay");   // 強化画面
+const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
 
 
 /* ---------- 画面の表示を新しくする関数 ---------- */
-// 「関数」= よく使う処理に名前をつけてまとめたもの
 
 function updateDisplay() {
   // toLocaleString() を使うと 1000 → 「1,000」のようにカンマ付きになる
   gemCountDisplay.textContent = gemCount.toLocaleString();
-  userLevelDisplay.textContent = userLevel;
+
+  // ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
+  const level = upgrades.size.level + upgrades.shape.level + upgrades.color.level - 2;
+  userLevelDisplay.textContent = level;
+}
+
+// 強化1種類ぶんの表示(ゲージ・レベル・お値段・ボタン)を新しくする。
+// type には "size"(大きさ)・"shape"(形)・"color"(色)のどれかが入る
+function updateOneUpgrade(type) {
+  const up = upgrades[type]; // upgrades["size"] は upgrades.size と同じ意味
+
+  // メイン画面と強化画面のレベル表示
+  document.getElementById(type + "-level").textContent = up.level;
+  document.getElementById("upgrade-" + type + "-level").textContent = up.level;
+
+  // ゲージの長さ(レベル10で100%になる)
+  const percent = (up.level / MAX_LEVEL) * 100;
+  document.getElementById("gauge-" + type).style.width = percent + "%";
+
+  // お値段の表示と、ボタンを押せるかどうか
+  const button = document.getElementById("upgrade-" + type + "-button");
+  const costDisplay = document.getElementById("upgrade-" + type + "-cost");
+  if (up.level >= MAX_LEVEL) {
+    // もう上限なら「MAX」にして押せなくする
+    costDisplay.textContent = "MAX";
+    button.disabled = true;
+  } else {
+    const cost = upgradeCost(up.level);
+    costDisplay.textContent = cost;
+    // 宝石が足りないときも押せなくする
+    button.disabled = gemCount < cost;
+  }
+}
+
+// 強化画面ぜんぶの表示を新しくする
+function updateUpgradeScreen() {
+  document.getElementById("upgrade-gem-count").textContent = gemCount.toLocaleString();
+  updateOneUpgrade("size");
+  updateOneUpgrade("shape");
+  updateOneUpgrade("color");
 }
 
 
-/* ---------- 宝石の数を保存する・読み込む ---------- */
+/* ---------- データを保存する・読み込む ---------- */
 // localStorage = ブラウザにデータを覚えさせておける場所。
-// これのおかげで、ページを閉じても宝石の数が消えない!
+// たくさんの数字をまとめて保存するために、
+// JSON.stringify(データ→文字)と JSON.parse(文字→データ)を使う。
 // ブラウザの設定によっては使えないこともあるので、
 // try/catch で「失敗してもゲームは止めない」ようにしている
 
 function saveGame() {
   try {
-    localStorage.setItem("gemCount", gemCount);
+    const data = {
+      gemCount: gemCount,
+      totalGems: totalGems,
+      tapCount: tapCount,
+      spentGems: spentGems,
+      rainbowCount: rainbowCount,
+      sizeLevel: upgrades.size.level,
+      shapeLevel: upgrades.shape.level,
+      colorLevel: upgrades.color.level,
+    };
+    localStorage.setItem("housekiSave", JSON.stringify(data));
   } catch (e) {
     // 保存できない環境では何もしない(ゲームはそのまま遊べる)
   }
@@ -56,18 +126,33 @@ function saveGame() {
 
 function loadGame() {
   try {
-    const saved = localStorage.getItem("gemCount");
-    if (saved !== null) {
-      // localStorage は文字として保存するので、Number() で数字に戻す
-      gemCount = Number(saved);
+    const savedText = localStorage.getItem("housekiSave");
+    if (savedText !== null) {
+      const data = JSON.parse(savedText);
+      // 「data.gemCount || 0」は「データがなければ 0 にする」という保険
+      gemCount = data.gemCount || 0;
+      totalGems = data.totalGems || 0;
+      tapCount = data.tapCount || 0;
+      spentGems = data.spentGems || 0;
+      rainbowCount = data.rainbowCount || 0;
+      upgrades.size.level = data.sizeLevel || 1;
+      upgrades.shape.level = data.shapeLevel || 1;
+      upgrades.color.level = data.colorLevel || 1;
+    } else {
+      // 昔のバージョンの保存データ(宝石の数だけ)が残っていたら引き継ぐ
+      const oldSave = localStorage.getItem("gemCount");
+      if (oldSave !== null) {
+        gemCount = Number(oldSave);
+        totalGems = gemCount;
+      }
     }
   } catch (e) {
-    // 読み込めない環境では 0 からスタート
+    // 読み込めない環境では最初からスタート
   }
 }
 
 
-/* ---------- キラーン♪ という効果音 ---------- */
+/* ---------- 効果音 ---------- */
 // 音声ファイルを使わずに、Web Audio API という仕組みで
 // ブラウザに直接音を作らせている
 
@@ -90,18 +175,22 @@ function playNote(frequency, startTime) {
   osc.connect(volume);
   volume.connect(audioContext.destination);
 
-  // 鳴らして、0.4秒後に止める
   osc.start(startTime);
   osc.stop(startTime + 0.4);
 }
 
-// 「キラーン♪」= 高い音を2つ、少しずらして重ねている
+// 道具箱の準備。まだなければ作る
+function prepareAudio() {
+  if (audioContext === null) {
+    audioContext = new AudioContext();
+  }
+}
+
+// 宝石を集めたとき:「キラーン♪」(高い音を2つ重ねる)
 function playCollectSound() {
   try {
-    if (audioContext === null) {
-      audioContext = new AudioContext();
-    }
-    const now = audioContext.currentTime; // 今の時刻
+    prepareAudio();
+    const now = audioContext.currentTime;
     playNote(1319, now);        // ミの音(高い)
     playNote(1760, now + 0.08); // ラの音(もっと高い)を少し遅れて
   } catch (e) {
@@ -109,20 +198,35 @@ function playCollectSound() {
   }
 }
 
+// 強化したとき:「ドミソ〜♪」(和音をだんだん重ねる)
+function playUpgradeSound() {
+  try {
+    prepareAudio();
+    const now = audioContext.currentTime;
+    playNote(523, now);         // ド
+    playNote(659, now + 0.07);  // ミ
+    playNote(784, now + 0.14);  // ソ
+  } catch (e) {
+    // 音が出せない環境でも続ける
+  }
+}
 
-/* ---------- 「+1」がふわっと飛ぶ演出 ---------- */
-// x, y は表示する場所の座標(メインエリアの左上からの距離)
 
-function showPlusOne(x, y) {
-  // <span> という部品を新しく作って、「+1」と書く
+/* ---------- 「+○」がふわっと飛ぶ演出 ---------- */
+// x, y は表示する場所、amount は増えた数、isRainbow は虹色宝石かどうか
+
+function showPlusOne(x, y, amount, isRainbow) {
   const plusOne = document.createElement("span");
-  plusOne.textContent = "+1";
+  plusOne.textContent = "+" + amount;
   plusOne.className = "plus-one"; // style.css のアニメーションが付く
+  if (isRainbow) {
+    // 虹色宝石のときは金色で大きく表示するクラスを追加する
+    plusOne.classList.add("plus-rainbow");
+  }
 
   plusOne.style.left = (x - 15) + "px";
   plusOne.style.top = (y - 30) + "px";
 
-  // メインエリアの中に追加すると画面に現れる
   mainArea.appendChild(plusOne);
 
   // アニメーションが終わったころ(0.8秒後)に消す。ゴミを残さないため
@@ -144,14 +248,16 @@ function spawnGem() {
   // 型紙(template)をコピーして、新しい宝石ボタンを作る
   const gem = gemTemplate.content.firstElementChild.cloneNode(true);
 
-  // 大きさをランダムに決める(60〜110ピクセル)
+  // 大きさをランダムに決める(60〜110ピクセル)。
+  // さらに「大きさレベル」1つにつき +8ピクセル 大きくなる!
   // Math.random() は「0以上1未満のランダムな数」を出してくれる
-  const size = 60 + Math.random() * 50;
+  const sizeBonus = (upgrades.size.level - 1) * 8;
+  const size = 60 + Math.random() * 50 + sizeBonus;
   gem.style.width = size + "px";
 
   // 出現する場所をランダムに決める(エリアからはみ出さない範囲で)
-  const areaWidth = mainArea.clientWidth;   // エリアの横幅
-  const areaHeight = mainArea.clientHeight; // エリアの縦幅
+  const areaWidth = mainArea.clientWidth;
+  const areaHeight = mainArea.clientHeight;
   const x = 10 + Math.random() * (areaWidth - size - 20);
   const y = 10 + Math.random() * (areaHeight - size - 20);
   gem.style.left = x + "px";
@@ -159,6 +265,13 @@ function spawnGem() {
 
   // 色をランダムに変える(色相を0〜360度回す。style.css の --hue で使われる)
   gem.style.setProperty("--hue", Math.floor(Math.random() * 360) + "deg");
+
+  // 虹色のレア宝石にするかどうかの抽選。
+  // 「色レベル×4」%の確率(Lv1なら4%、Lv10なら40%)
+  const rainbowChance = upgrades.color.level * 4;
+  if (Math.random() * 100 < rainbowChance) {
+    gem.classList.add("rainbow"); // 虹色に光るクラスを付ける
+  }
 
   // この宝石がクリックされたら collectGem を動かす
   gem.addEventListener("click", function () {
@@ -170,7 +283,7 @@ function spawnGem() {
 }
 
 
-/* ---------- 宝石をクリックして集めたときの処理 ---------- */
+/* ---------- 宝石をタップして集めたときの処理 ---------- */
 
 function collectGem(gem) {
   // 消えている途中の宝石をもう一度クリックしても、二重に数えない
@@ -178,48 +291,143 @@ function collectGem(gem) {
     return;
   }
 
-  // 1. 宝石を 1 個増やす(gemCount = gemCount + 1 と同じ意味)
-  gemCount += 1;
+  // 1. 何個ぶん集まるか計算する。
+  //    ふつうは「形レベル」個。虹色宝石ならさらに5倍!
+  const isRainbow = gem.classList.contains("rainbow");
+  let amount = upgrades.shape.level;
+  if (isRainbow) {
+    amount = amount * 5;
+    rainbowCount += 1;
+  }
 
-  // 2. 画面の数字を新しくして、保存する
+  // 2. 宝石を増やして、統計も数える
+  gemCount += amount;
+  totalGems += amount;
+  tapCount += 1;
+
+  // 3. 画面の数字を新しくして、保存する
   updateDisplay();
   saveGame();
 
-  // 3. キラーン♪ と鳴らす
+  // 4. キラーン♪ と鳴らす
   playCollectSound();
 
-  // 4. 宝石のあった場所(真ん中)に「+1」を飛ばす
-  //    offsetLeft/offsetTop = メインエリアの左上から宝石までの距離
+  // 5. 宝石のあった場所(真ん中)に「+○」を飛ばす
   const centerX = gem.offsetLeft + gem.clientWidth / 2;
   const centerY = gem.offsetTop + gem.clientHeight / 2;
-  showPlusOne(centerX, centerY);
+  showPlusOne(centerX, centerY, amount, isRainbow);
 
-  // 5. 「collected」クラスを付けると、キラッと消えるアニメーションが始まる
+  // 6. 「collected」クラスを付けると、キラッと消えるアニメーションが始まる
   gem.classList.add("collected");
 
-  // 6. アニメーションが終わったころ(0.4秒後)に、宝石を画面から取り除く
+  // 7. アニメーションが終わったころ(0.4秒後)に、宝石を画面から取り除く
   setTimeout(function () {
     gem.remove();
   }, 400);
 
-  // 7. 少し待ってから(0.5〜1.5秒後)、新しい宝石を出現させる
+  // 8. 少し待ってから(0.5〜1.5秒後)、新しい宝石を出現させる
   const waitTime = 500 + Math.random() * 1000;
   setTimeout(spawnGem, waitTime);
 }
 
 
-/* ---------- まだ作っていないボタンたち ---------- */
-// 押すと「準備中」のメッセージを出すだけ。中身はこれから作っていく!
+/* ---------- 強化(Lv UP)の処理 ---------- */
+// type には "size"・"shape"・"color" のどれかが入る
 
+function buyUpgrade(type) {
+  const up = upgrades[type];
+
+  // 上限チェック(ボタンは押せないはずだけど、念のため)
+  if (up.level >= MAX_LEVEL) {
+    return;
+  }
+
+  // 宝石が足りるかチェック
+  const cost = upgradeCost(up.level);
+  if (gemCount < cost) {
+    return;
+  }
+
+  // 宝石を払って、レベルを上げる!
+  gemCount -= cost;
+  spentGems += cost;
+  up.level += 1;
+
+  // 音を鳴らして、画面と保存データを新しくする
+  playUpgradeSound();
+  updateDisplay();
+  updateUpgradeScreen();
+  saveGame();
+}
+
+
+/* ---------- せってい画面(統計の表示) ---------- */
+
+function openSettings() {
+  // 開くたびに、最新の統計の数字を書き込む
+  document.getElementById("stat-total").textContent = totalGems.toLocaleString();
+  document.getElementById("stat-taps").textContent = tapCount.toLocaleString();
+  document.getElementById("stat-spent").textContent = spentGems.toLocaleString();
+  document.getElementById("stat-rainbow").textContent = rainbowCount.toLocaleString();
+
+  // hidden を外すと画面に現れる
+  settingsOverlay.hidden = false;
+}
+
+// データをぜんぶ消して最初からにする
+function resetGame() {
+  // confirm() は「OK / キャンセル」の確認ダイアログを出す。OK なら true が返る
+  const ok = confirm("ほんとうにデータをリセットしますか?\n宝石もレベルも、ぜんぶ消えます!");
+  if (ok) {
+    try {
+      localStorage.removeItem("housekiSave");
+      localStorage.removeItem("gemCount"); // 昔のバージョンの保存データも消す
+    } catch (e) {
+      // 消せなくてもそのまま進む
+    }
+    location.reload(); // ページを読み込み直して最初から
+  }
+}
+
+
+/* ---------- ボタンとの関連付け ---------- */
+// addEventListener("click", 関数) = 「クリックされたらこの関数を動かして」というお願い
+
+// Lv UP ボタン → 強化画面を開く
+document.getElementById("lvup-button").addEventListener("click", function () {
+  updateUpgradeScreen(); // 開く前に最新の数字にしておく
+  upgradeOverlay.hidden = false;
+});
+
+// 強化画面の中のボタンたち
+document.getElementById("upgrade-size-button").addEventListener("click", function () {
+  buyUpgrade("size");
+});
+document.getElementById("upgrade-shape-button").addEventListener("click", function () {
+  buyUpgrade("shape");
+});
+document.getElementById("upgrade-color-button").addEventListener("click", function () {
+  buyUpgrade("color");
+});
+document.getElementById("upgrade-close").addEventListener("click", function () {
+  upgradeOverlay.hidden = true; // hidden を付けると隠れる
+});
+
+// せってい関係
+document.getElementById("menu-settings").addEventListener("click", openSettings);
+document.getElementById("settings-close").addEventListener("click", function () {
+  settingsOverlay.hidden = true;
+});
+document.getElementById("reset-button").addEventListener("click", resetGame);
+
+// まだ作っていないボタンたち(押すと「準備中」のメッセージを出すだけ)
 function comingSoon() {
   alert("この機能はまだ準備中です!おたのしみに");
 }
 
-document.getElementById("lvup-button").addEventListener("click", comingSoon);
 document.getElementById("menu-atsumeru").addEventListener("click", comingSoon);
 document.getElementById("menu-store").addEventListener("click", comingSoon);
 document.getElementById("menu-story").addEventListener("click", comingSoon);
-document.getElementById("menu-settings").addEventListener("click", comingSoon);
 
 
 /* ---------- ゲーム開始! ---------- */
@@ -227,6 +435,7 @@ document.getElementById("menu-settings").addEventListener("click", comingSoon);
 // まず保存データを読み込んで、画面に表示する
 loadGame();
 updateDisplay();
+updateUpgradeScreen();
 
 // 最初の宝石たちを、0.3秒ずつずらして3個出現させる
 setTimeout(spawnGem, 300);

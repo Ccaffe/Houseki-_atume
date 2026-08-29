@@ -26,6 +26,7 @@ body {
 
 /* ---------- ゲーム全体の枠(スマホ縦画面の形) ---------- */
 .game {
+  position: relative; /* ポップアップ画面をこの枠の中に重ねるための設定 */
   width: 100%;
   max-width: 420px;      /* 横幅はスマホくらいまで */
   min-height: 100vh;     /* 縦は画面いっぱい */
@@ -120,6 +121,20 @@ body {
   to   { transform: scale(1.6); opacity: 0; }
 }
 
+/* 虹色のレア宝石(色レベルを上げると出やすくなる)。
+   色相をぐるぐる回して、キラキラ虹色に光らせる */
+.gem.rainbow {
+  animation:
+    pop-in 0.3s ease-out,
+    float 4s ease-in-out infinite,
+    rainbow-spin 1.5s linear infinite;
+}
+
+@keyframes rainbow-spin {
+  from { filter: hue-rotate(0deg)   drop-shadow(0 0 22px rgba(255, 255, 255, 0.8)); }
+  to   { filter: hue-rotate(360deg) drop-shadow(0 0 22px rgba(255, 255, 255, 0.8)); }
+}
+
 /* 「+1」がふわっと浮かぶ演出(script.js がこのクラスの文字を作る) */
 .plus-one {
   position: absolute;
@@ -135,6 +150,12 @@ body {
 @keyframes rise {
   from { opacity: 1; translate: 0 0; }
   to   { opacity: 0; translate: 0 -60px; }
+}
+
+/* 虹色の宝石を集めたときの「+○」は金色で大きく */
+.plus-one.plus-rainbow {
+  color: #ffe066;
+  font-size: 36px;
 }
 
 /* ---------- ③ ステータスパネル ---------- */
@@ -260,4 +281,145 @@ body {
   color: #cfc4ae;
   background: #17100c;
   border-top: 2px solid #6b5638;
+}
+
+/* ---------- ⑥ ポップアップ画面(強化・せってい) ---------- */
+
+/* HTML で hidden が付いている要素は、確実に非表示にする */
+[hidden] {
+  display: none !important;
+}
+
+/* 画面全体を暗くおおう幕。この上にパネルが乗る */
+.overlay {
+  position: absolute;
+  inset: 0;           /* 上下左右すべて 0 = ゲーム画面いっぱいに広げる */
+  z-index: 10;        /* ほかの要素より手前に表示する */
+  background: rgba(0, 0, 0, 0.65); /* 半透明の黒 */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* パネルを画面の真ん中に置く */
+}
+
+/* ポップアップの本体(木の板風のパネル) */
+.panel {
+  width: 88%;
+  max-height: 85%;
+  overflow-y: auto; /* 中身が多いときはパネルの中だけスクロール */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 16px;
+  background: linear-gradient(180deg, #4a3526 0%, #33241a 100%);
+  border: 3px solid #8a6d45;
+  outline: 1px solid #3a2b1c;
+  border-radius: 12px;
+}
+
+.panel-title {
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: #f5e8cf;
+}
+
+.panel-balance {
+  text-align: center;
+  font-size: 16px;
+}
+
+.panel-subtitle {
+  font-size: 15px;
+  color: #cbbb9a;
+}
+
+/* 強化の1行(名前と説明+お値段ボタン) */
+.upgrade-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #6b5638;
+  border-radius: 8px;
+}
+
+.upgrade-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upgrade-name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.upgrade-level {
+  font-size: 14px;
+  font-weight: normal;
+  color: #cbbb9a;
+}
+
+.upgrade-desc {
+  font-size: 13px;
+  color: #cbbb9a;
+}
+
+/* お値段が書いてある強化ボタン */
+.upgrade-button {
+  min-width: 88px;
+  padding: 10px 8px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  color: #f0e2c8;
+  background: linear-gradient(180deg, #5a4430 0%, #3a2a1c 100%);
+  border: 2px solid #a08050;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.upgrade-button:active {
+  transform: scale(0.95);
+}
+
+/* 宝石が足りないとき・レベルが最大のときは、ボタンを薄くして押せなくする */
+.upgrade-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 「とじる」ボタン */
+.close-button {
+  padding: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  color: #d8ccb8;
+  background: linear-gradient(180deg, #55606d 0%, #303841 100%);
+  border: 2px solid #7a8694;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 「データをリセット」ボタン(危険な操作なので赤っぽくする) */
+.reset-button {
+  padding: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  color: #ffb8a5;
+  background: linear-gradient(180deg, #5a3028 0%, #3a1c18 100%);
+  border: 2px solid #a05040;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* 統計の1行(名前と数字を左右に振り分ける) */
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 15px;
 }

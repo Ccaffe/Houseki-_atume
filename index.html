@@ -82,20 +82,21 @@
       <button class="lvup-button" id="lvup-button">Lv UP</button>
 
       <div class="status-rows">
-        <!-- 1行分:名前+ゲージ+レベル表示、が3つ並ぶ -->
+        <!-- 1行分:名前+ゲージ+レベル表示、が3つ並ぶ。
+             ゲージの長さ(width)は script.js がレベルに合わせて変える -->
         <div class="status-row">
           <span class="status-name">大きさ</span>
-          <div class="status-gauge"><div class="status-gauge-fill" style="width: 15%"></div></div>
+          <div class="status-gauge"><div class="status-gauge-fill" id="gauge-size" style="width: 10%"></div></div>
           <span class="status-level">Lv. <span id="size-level">1</span></span>
         </div>
         <div class="status-row">
           <span class="status-name">形</span>
-          <div class="status-gauge"><div class="status-gauge-fill" style="width: 15%"></div></div>
+          <div class="status-gauge"><div class="status-gauge-fill" id="gauge-shape" style="width: 10%"></div></div>
           <span class="status-level">Lv. <span id="shape-level">1</span></span>
         </div>
         <div class="status-row">
           <span class="status-name">色</span>
-          <div class="status-gauge"><div class="status-gauge-fill" style="width: 15%"></div></div>
+          <div class="status-gauge"><div class="status-gauge-fill" id="gauge-color" style="width: 10%"></div></div>
           <span class="status-level">Lv. <span id="color-level">1</span></span>
         </div>
       </div>
@@ -116,6 +117,65 @@
          ⑤ PR枠(広告を入れる予定の場所)
          =============================== -->
     <footer class="pr-banner">PR</footer>
+
+    <!-- ===============================
+         ⑥ 強化(Lv UP)画面
+         ふだんは hidden で隠れていて、Lv UP ボタンを押すと出てくる
+         =============================== -->
+    <div class="overlay" id="upgrade-overlay" hidden>
+      <div class="panel">
+        <h2 class="panel-title">✦ 宝石を強化する ✦</h2>
+        <p class="panel-balance">もっている宝石 💎 <span id="upgrade-gem-count">0</span></p>
+
+        <!-- 強化1行分:名前とレベル+説明、右にお値段ボタン -->
+        <div class="upgrade-row">
+          <div class="upgrade-info">
+            <span class="upgrade-name">大きさ <span class="upgrade-level">Lv. <span id="upgrade-size-level">1</span></span></span>
+            <span class="upgrade-desc">宝石が大きくなって、タップしやすくなる</span>
+          </div>
+          <button class="upgrade-button" id="upgrade-size-button">💎 <span id="upgrade-size-cost">10</span></button>
+        </div>
+
+        <div class="upgrade-row">
+          <div class="upgrade-info">
+            <span class="upgrade-name">形 <span class="upgrade-level">Lv. <span id="upgrade-shape-level">1</span></span></span>
+            <span class="upgrade-desc">カットが美しくなり、1個で集まる宝石が増える</span>
+          </div>
+          <button class="upgrade-button" id="upgrade-shape-button">💎 <span id="upgrade-shape-cost">10</span></button>
+        </div>
+
+        <div class="upgrade-row">
+          <div class="upgrade-info">
+            <span class="upgrade-name">色 <span class="upgrade-level">Lv. <span id="upgrade-color-level">1</span></span></span>
+            <span class="upgrade-desc">虹色のレア宝石(5倍!)が出やすくなる</span>
+          </div>
+          <button class="upgrade-button" id="upgrade-color-button">💎 <span id="upgrade-color-cost">10</span></button>
+        </div>
+
+        <button class="close-button" id="upgrade-close">とじる</button>
+      </div>
+    </div>
+
+    <!-- ===============================
+         ⑦ せってい画面(統計が見られる)
+         =============================== -->
+    <div class="overlay" id="settings-overlay" hidden>
+      <div class="panel">
+        <h2 class="panel-title">✦ せってい ✦</h2>
+
+        <p class="panel-subtitle">これまでのきろく</p>
+        <!-- 統計の数字は script.js が開くたびに書き込む -->
+        <div class="stats">
+          <div class="stats-row"><span>あつめた宝石の総数</span><span id="stat-total">0</span></div>
+          <div class="stats-row"><span>タップした回数</span><span id="stat-taps">0</span></div>
+          <div class="stats-row"><span>強化につかった宝石</span><span id="stat-spent">0</span></div>
+          <div class="stats-row"><span>虹色の宝石をあつめた数</span><span id="stat-rainbow">0</span></div>
+        </div>
+
+        <button class="reset-button" id="reset-button">データをリセット</button>
+        <button class="close-button" id="settings-close">とじる</button>
+      </div>
+    </div>
 
   </div>
 
