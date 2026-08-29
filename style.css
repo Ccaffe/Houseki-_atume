@@ -173,6 +173,9 @@ body {
   gap: 14px;
   margin: 10px 12px;
   padding: 16px 14px;
+  /* 高さを固定しておく。強化の項目がこれから増えても
+     パネル自体は大きくならず、中だけがスクロールする */
+  height: 150px;
   /* 木の板のような茶色い背景と、金色っぽい二重枠 */
   background: linear-gradient(180deg, #4a3526 0%, #33241a 100%);
   border: 3px solid #8a6d45;
@@ -197,12 +200,32 @@ body {
   transform: scale(0.95); /* 押した感を出す */
 }
 
-/* ゲージ3行をまとめる箱 */
+/* ゲージの行をまとめる箱。
+   行が増えてパネルに収まらなくなったら、この箱の中だけ縦スクロールできる */
 .status-rows {
-  flex: 1; /* 残りの横幅を全部使う */
+  flex: 1;             /* 残りの横幅を全部使う */
+  align-self: stretch; /* パネルの高さいっぱいに広げる */
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-y: auto;      /* 収まらないぶんは縦スクロール */
+  padding-right: 4px;    /* スクロールバーと中身がくっつかないように */
+  scrollbar-width: thin; /* スクロールバーを細くする(Firefox用) */
+}
+
+/* スクロールバーの見た目(Chrome・Safari用)。ゲームの雰囲気に合わせた金茶色 */
+.status-rows::-webkit-scrollbar {
+  width: 6px;
+}
+
+.status-rows::-webkit-scrollbar-thumb {
+  background: #8a6d45;
+  border-radius: 3px;
+}
+
+.status-rows::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
 }
 
 /* 1行(名前+ゲージ+レベル)を横に並べる */
@@ -210,6 +233,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0; /* 行はつぶさない(収まらないぶんはスクロールに回す) */
 }
 
 .status-name {
