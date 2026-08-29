@@ -67,6 +67,8 @@ const userLevelDisplay = document.getElementById("user-level"); // レベルの�
 const mainArea = document.getElementById("main-area");         // 宝石が出るエリア
 const upgradeOverlay = document.getElementById("upgrade-overlay");   // 強化画面
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
+const confirmOverlay = document.getElementById("confirm-overlay");   // リセット確認画面
+const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(トースト表示に使う)
 
 
 /* ---------- 画面の表示を新しくする関数 ---------- */
@@ -427,19 +429,65 @@ function openSettings() {
   settingsOverlay.hidden = false;
 }
 
-// データをぜんぶ消して最初からにする
-function resetGame() {
-  // confirm() は「OK / キャンセル」の確認ダイアログを出す。OK なら true が返る
-  const ok = confirm("ほんとうにデータをリセットしますか?\n宝石もレベルも、ぜんぶ消えます!");
-  if (ok) {
-    try {
-      localStorage.removeItem("housekiSave");
-      localStorage.removeItem("gemCount"); // 昔のバージョンの保存データも消す
-    } catch (e) {
-      // 消せなくてもそのまま進む
-    }
-    location.reload(); // ページを読み込み直して最初から
+/* ---------- トースト(画面下にふわっと出る小さなお知らせ) ---------- */
+// alert() はこのゲームを公開するページでは使えないことがあるので、
+// 自分でメッセージ表示を作っている
+
+function showToast(message) {
+  const toast = document.createElement("div");
+  toast.className = "toast"; // style.css のふわっと出るアニメーションが付く
+  toast.textContent = message;
+  gameFrame.appendChild(toast);
+
+  // アニメーションが終わったころ(2秒後)に消す。ゴミを残さないため
+  setTimeout(function () {
+    toast.remove();
+  }, 2000);
+}
+
+
+/* ---------- データのリセット ---------- */
+
+// 「データをリセット」ボタン → まず確認画面を出す(いきなり消さない!)
+function openResetConfirm() {
+  confirmOverlay.hidden = false;
+}
+
+// 確認画面で「はい」→ 本当にリセットする
+function doReset() {
+  // 1. 保存データを消す
+  try {
+    localStorage.removeItem("housekiSave");
+  } catch (e) {
+    // 消せなくてもそのまま進む
   }
+
+  // 2. ゲームの変数をぜんぶ最初の状態に戻す
+  gemCount = 0;
+  totalGems = 0;
+  tapCount = 0;
+  spentGems = 0;
+  upgrades.size.level = 1;
+  upgrades.shape.level = 1;
+  upgrades.color.level = 1;
+
+  // 3. 画面に残っている宝石をぜんぶ消す
+  const gems = mainArea.querySelectorAll(".gem");
+  gems.forEach(function (gem) {
+    gem.remove();
+  });
+
+  // 4. 表示を新しくして、開いていた画面を閉じる
+  updateDisplay();
+  updateUpgradeScreen();
+  confirmOverlay.hidden = true;
+  settingsOverlay.hidden = true;
+
+  // 5. 最初の宝石たちをまた出現させて、お知らせを出す
+  setTimeout(spawnGem, 300);
+  setTimeout(spawnGem, 600);
+  setTimeout(spawnGem, 900);
+  showToast("データをリセットしました");
 }
 
 
@@ -471,11 +519,16 @@ document.getElementById("menu-settings").addEventListener("click", openSettings)
 document.getElementById("settings-close").addEventListener("click", function () {
   settingsOverlay.hidden = true;
 });
-document.getElementById("reset-button").addEventListener("click", resetGame);
+// リセット関係(ボタン → 確認画面 → はい/いいえ)
+document.getElementById("reset-button").addEventListener("click", openResetConfirm);
+document.getElementById("reset-yes").addEventListener("click", doReset);
+document.getElementById("reset-no").addEventListener("click", function () {
+  confirmOverlay.hidden = true; // 「いいえ」なら確認画面を閉じるだけ
+});
 
 // まだ作っていないボタンたち(押すと「準備中」のメッセージを出すだけ)
 function comingSoon() {
-  alert("この機能はまだ準備中です!おたのしみに");
+  showToast("この機能はまだ準備中です!おたのしみに");
 }
 
 document.getElementById("menu-atsumeru").addEventListener("click", comingSoon);

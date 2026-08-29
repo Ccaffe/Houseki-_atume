@@ -244,6 +244,23 @@
       </div>
     </div>
 
+    <!-- ===============================
+         ⑧ リセットの確認画面
+         「データをリセット」を押すと出てくる。
+         ブラウザ標準の confirm() は使えない環境があるので、自作している
+         =============================== -->
+    <div class="overlay" id="confirm-overlay" hidden>
+      <div class="panel">
+        <h2 class="panel-title">✦ かくにん ✦</h2>
+        <p class="confirm-text">
+          本当にリセットしてもよろしいですか?<br>
+          (リセットすると、今まで集めた宝石やレベルはリセットされます。)
+        </p>
+        <button class="reset-button" id="reset-yes">はい</button>
+        <button class="close-button" id="reset-no">いいえ</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- ゲームの動き(プログラム)のファイルを読み込む。

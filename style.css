@@ -431,3 +431,36 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 15px;
 }
+
+/* リセット確認画面の説明文 */
+.confirm-text {
+  font-size: 15px;
+  line-height: 1.8; /* 行と行の間を広めにして読みやすくする */
+  text-align: center;
+}
+
+/* ---------- ⑦ トースト(画面の下にふわっと出る小さなお知らせ) ---------- */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 130px;
+  translate: -50% 0; /* 自分の幅の半分だけ左にずらして、ちょうど中央にする */
+  z-index: 20;       /* ポップアップ画面よりさらに手前 */
+  padding: 10px 18px;
+  background: rgba(20, 12, 8, 0.85);
+  color: #f0e2c8;
+  font-size: 15px;
+  border: 1px solid #8a6d45;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none; /* タップの邪魔をしないように */
+  animation: toast-fade 2s ease forwards;
+}
+
+/* ふわっと現れて、少し待って、すーっと消える */
+@keyframes toast-fade {
+  0%   { opacity: 0; translate: -50% 10px; }
+  10%  { opacity: 1; translate: -50% 0; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
