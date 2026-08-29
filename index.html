@@ -143,12 +143,24 @@
     </template>
 
     <!-- ===============================
+         ③-B ストーリー画面(ふだんは hidden で隠れている)
+         メニューの「ストーリー」を押すと、あつめる画面のかわりに表示される。
+         一覧の中身は script.js の「ストーリー編集コーナー」から作られる
+         =============================== -->
+    <section class="story-screen" id="story-screen" hidden>
+      <h2 class="story-heading">✦ ストーリー ✦</h2>
+      <div class="story-list" id="story-list">
+        <!-- ここに script.js がストーリーのカードを並べる -->
+      </div>
+    </section>
+
+    <!-- ===============================
          ③ ステータスパネル(強化の一覧)
          1行 = [Lv UPボタン] 名前 … いまのレベル。
          ボタンを押すと、宝石を払ってその場でレベルアップ!
          行が増えたらパネルの中だけ縦スクロールできる
          =============================== -->
-    <section class="status-panel">
+    <section class="status-panel" id="status-panel">
       <div class="status-rows">
         <div class="status-row">
           <button class="row-lvup" id="lvup-size">Lv UP<span class="row-cost">💎 <span id="size-cost">10</span></span></button>
@@ -203,6 +215,18 @@
 
         <button class="reset-button" id="reset-button">データをリセット</button>
         <button class="close-button" id="settings-close">とじる</button>
+      </div>
+    </div>
+
+    <!-- ===============================
+         ⑥-B ストーリーを読む画面
+         一覧でストーリーをタップすると出てくる
+         =============================== -->
+    <div class="overlay" id="story-overlay" hidden>
+      <div class="panel">
+        <h2 class="panel-title" id="story-read-title">タイトル</h2>
+        <p class="story-text" id="story-read-text">本文</p>
+        <button class="close-button" id="story-close">とじる</button>
       </div>
     </div>
 

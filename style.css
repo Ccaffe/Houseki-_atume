@@ -268,6 +268,111 @@ body {
   white-space: nowrap;
 }
 
+/* ---------- ③-B ストーリー画面 ---------- */
+
+/* あつめる画面(宝石エリア+パネル)のかわりに表示される。
+   flex: 1 で同じ縦スペースを使い、カードが多いときは中だけスクロール */
+.story-screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+}
+
+.story-heading {
+  text-align: center;
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: #f5e8cf;
+}
+
+/* カードを縦に並べる箱。カードの幅が全部そろう */
+.story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ストーリー1話ぶんのカード(木の看板風) */
+.story-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: left;
+  color: #f0e2c8;
+  background: linear-gradient(180deg, #4a3526 0%, #33241a 100%);
+  border: 3px solid #8a6d45;
+  outline: 1px solid #3a2b1c;
+  border-radius: 10px;
+  flex-shrink: 0; /* カードはつぶさない(あふれたらスクロール) */
+}
+
+/* 解放済みのカード(ボタンなので押せる) */
+button.story-card {
+  cursor: pointer;
+}
+
+button.story-card:active {
+  transform: scale(0.98);
+}
+
+/* カードの右端の📖アイコン */
+.story-book {
+  margin-left: auto; /* 右端に押しやる */
+  font-size: 26px;
+}
+
+/* 「💎 100」の解放ボタン */
+.story-unlock {
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  color: #f0e2c8;
+  background: linear-gradient(180deg, #5a4430 0%, #3a2a1c 100%);
+  border: 2px solid #a08050;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.story-unlock:active {
+  transform: scale(0.95);
+}
+
+/* 宝石が足りないときは押せなくする */
+.story-unlock:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* まだ解放できないカード(灰色+🔒) */
+.story-card.locked {
+  justify-content: center;
+  background: linear-gradient(180deg, #9a9a9a 0%, #7a7a7a 100%);
+  border-color: #b0b0b0;
+  color: #4a4a4a;
+}
+
+/* ストーリー本文(読む画面の中)。
+   white-space: pre-line = 打ち込んだ改行をそのまま表示する */
+.story-text {
+  white-space: pre-line;
+  font-size: 15px;
+  line-height: 2;
+  max-height: 55vh;   /* 長いお話は本文だけスクロール */
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 /* ---------- ④ メニューボタン ---------- */
 .menu {
   display: flex;
@@ -293,6 +398,13 @@ body {
 
 .menu-button:active {
   transform: scale(0.95);
+}
+
+/* いま開いている画面のメニューボタン(script.js が active クラスを付ける) */
+.menu-button.active {
+  border-color: #f0d9a8;
+  background: linear-gradient(180deg, #6a5236 0%, #3a2a1a 100%);
+  color: #fff6e0;
 }
 
 /* ---------- ⑤ PR枠 ---------- */

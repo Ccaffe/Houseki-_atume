@@ -28,6 +28,51 @@ const gemImages = {
 };
 
 
+/* =========================================================
+   ★ ストーリー編集コーナー ★
+   ストーリーはここに書くだけで、ゲームの一覧に自動で並ぶ!
+   { title: "タイトル", text: `本文` } のかたまりを増やせば話も増える。
+   本文はバッククォート( ` )で囲むと、改行もそのまま使えて書きやすい
+   ========================================================= */
+
+// ストーリー1話を解放するのに必要な宝石(ダイヤ)の数
+const STORY_COST = 100;
+
+const stories = [
+  {
+    title: "各地の宝石たち",
+    text: `世界のあちこちには、ふしぎな宝石が眠っているという。
+
+赤い宝石は、燃える山のふもとで。
+青い宝石は、深い湖の底で。
+だれかに見つけてもらうのを、静かに待っている。
+
+今日もこの屋敷には、どこからか宝石が集まってくる。
+――さあ、あつめよう。`,
+  },
+  {
+    title: "屋敷の少女",
+    text: `この屋敷には、黒い服の少女がひとりで住んでいる。
+
+少女は毎晩、集まってきた宝石をひとつずつ磨く。
+「きれいになったね」
+宝石はうれしそうに、きらりと光った。
+
+少女がなぜ宝石を集めているのか、それはまだ、だれも知らない。`,
+  },
+  {
+    title: "星型の宝石のうわさ",
+    text: `「星のかたちをした宝石は、願いをかなえるらしい」
+
+そんなうわさを、風が運んできた。
+少女は窓の外を見上げる。
+夜空の星と、手のひらの宝石が、同じ色にまたたいた。
+
+――もっと、あつめてみようか。`,
+  },
+];
+
+
 /* ---------- ゲームのデータ(変数) ---------- */
 
 // 「let」は「あとで中身が変わる変数」を作る書き方
@@ -35,6 +80,7 @@ let gemCount = 0;     // いま持っている宝石(強化に使うと減る)
 let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減らない)
 let tapCount = 0;     // 宝石をタップした回数(統計用)
 let spentGems = 0;    // 強化につかった宝石の数(統計用)
+let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だけ読める)
 
 // 「const」は「変わらない値」を作る書き方
 const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数
@@ -65,6 +111,10 @@ function upgradeCost(level) {
 const gemCountDisplay = document.getElementById("gem-count"); // 宝石の数の表示
 const userLevelDisplay = document.getElementById("user-level"); // レベルの表示
 const mainArea = document.getElementById("main-area");         // 宝石が出るエリア
+const statusPanel = document.getElementById("status-panel");   // 強化パネル
+const storyScreen = document.getElementById("story-screen");   // ストーリー画面
+const storyList = document.getElementById("story-list");       // ストーリーの一覧
+const storyOverlay = document.getElementById("story-overlay"); // ストーリーを読む画面
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
 const confirmOverlay = document.getElementById("confirm-overlay");   // リセット確認画面
 const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(トースト表示に使う)
@@ -126,6 +176,7 @@ function saveGame() {
       totalGems: totalGems,
       tapCount: tapCount,
       spentGems: spentGems,
+      unlockedStories: unlockedStories,
       sizeLevel: upgrades.size.level,
       shapeLevel: upgrades.shape.level,
       colorLevel: upgrades.color.level,
@@ -155,6 +206,7 @@ function loadGame() {
     totalGems = data.totalGems || 0;
     tapCount = data.tapCount || 0;
     spentGems = data.spentGems || 0;
+    unlockedStories = data.unlockedStories || 1;
     upgrades.size.level = data.sizeLevel || 1;
     upgrades.shape.level = data.shapeLevel || 1;
     upgrades.color.level = data.colorLevel || 1;
@@ -247,6 +299,13 @@ function showPlusOne(x, y, amount) {
 /* ---------- 宝石を1個、ランダムな場所に出現させる ---------- */
 
 function spawnGem() {
+  // ストーリー画面などを見ていて宝石エリアが隠れているときは、
+  // 少し待ってからもう一度チャレンジする
+  if (mainArea.hidden) {
+    setTimeout(spawnGem, 1000);
+    return;
+  }
+
   // すでに画面に MAX_GEMS 個あったら、これ以上は出さない
   const gemsOnScreen = mainArea.querySelectorAll(".gem").length;
   if (gemsOnScreen >= MAX_GEMS) {
@@ -409,6 +468,101 @@ function buyUpgrade(type) {
 }
 
 
+/* ---------- 画面の切り替え(あつめる ⇄ ストーリー) ---------- */
+// name には "atsumeru" か "story" が入る
+
+function showScreen(name) {
+  const isStory = name === "story";
+
+  // hidden を付けたり外したりして、見える画面を切り替える
+  mainArea.hidden = isStory;
+  statusPanel.hidden = isStory;
+  storyScreen.hidden = !isStory;
+
+  // ストーリー画面を開くときは、一覧を最新の状態で作り直す
+  if (isStory) {
+    buildStoryList();
+  }
+
+  // いま開いている画面のメニューボタンを光らせる
+  document.getElementById("menu-atsumeru").classList.toggle("active", !isStory);
+  document.getElementById("menu-story").classList.toggle("active", isStory);
+}
+
+
+/* ---------- ストーリー ---------- */
+
+// ストーリーの一覧を作る。カードは3種類:
+//  ・解放済み  → タイトルと📖。タップすると読める
+//  ・次のお話  → 「💎 100」の解放ボタン付き
+//  ・その先    → 灰色の🔒(順番に解放していく)
+function buildStoryList() {
+  storyList.innerHTML = ""; // まず一覧を空っぽにして、作り直す
+
+  for (let i = 0; i < stories.length; i++) {
+    const number = i + 1; // 0番目から始まるので、表示用に +1 する
+
+    if (i < unlockedStories) {
+      // --- 解放済み:タップすると読めるボタン ---
+      const card = document.createElement("button");
+      card.className = "story-card";
+      card.innerHTML =
+        number + ". " + stories[i].title + '<span class="story-book">📖</span>';
+      card.addEventListener("click", function () {
+        openStoryReader(i);
+      });
+      storyList.appendChild(card);
+    } else if (i === unlockedStories) {
+      // --- 次のお話:宝石を払って解放できる ---
+      const card = document.createElement("div");
+      card.className = "story-card";
+
+      const unlockButton = document.createElement("button");
+      unlockButton.className = "story-unlock";
+      unlockButton.textContent = "💎 " + STORY_COST;
+      unlockButton.disabled = gemCount < STORY_COST; // 足りなければ押せない
+      unlockButton.addEventListener("click", function () {
+        unlockStory();
+      });
+
+      card.appendChild(unlockButton);
+      card.appendChild(document.createTextNode(" " + number + "."));
+      storyList.appendChild(card);
+    } else {
+      // --- その先:まだ解放できない ---
+      const card = document.createElement("div");
+      card.className = "story-card locked";
+      card.textContent = number + ". 🔒";
+      storyList.appendChild(card);
+    }
+  }
+}
+
+// 宝石を払って、次のストーリーを解放する
+function unlockStory() {
+  if (gemCount < STORY_COST) {
+    return; // 足りなければ何もしない(ボタンも押せないはずだけど念のため)
+  }
+
+  gemCount -= STORY_COST;
+  unlockedStories += 1;
+
+  playUpgradeSound();
+  updateDisplay();
+  saveGame();
+  buildStoryList(); // 一覧を作り直すと、解放されたお話が読めるようになっている
+  showToast("ストーリー" + unlockedStories + "「" + stories[unlockedStories - 1].title + "」を解放した!");
+}
+
+// ストーリーを読む画面を開く。index は何番目のお話か(0から)
+function openStoryReader(index) {
+  document.getElementById("story-read-title").textContent =
+    "✦ " + (index + 1) + ". " + stories[index].title + " ✦";
+  document.getElementById("story-read-text").textContent = stories[index].text;
+  storyOverlay.hidden = false;
+}
+
+
 /* ---------- せってい画面(統計の表示) ---------- */
 
 function openSettings() {
@@ -462,6 +616,7 @@ function doReset() {
   upgrades.size.level = 1;
   upgrades.shape.level = 1;
   upgrades.color.level = 1;
+  unlockedStories = 1;
 
   // 3. 画面に残っている宝石をぜんぶ消す
   const gems = mainArea.querySelectorAll(".gem");
@@ -474,7 +629,8 @@ function doReset() {
   confirmOverlay.hidden = true;
   settingsOverlay.hidden = true;
 
-  // 5. 最初の宝石たちをまた出現させて、お知らせを出す
+  // 5. あつめる画面に戻して、最初の宝石たちをまた出現させて、お知らせを出す
+  showScreen("atsumeru");
   setTimeout(spawnGem, 300);
   setTimeout(spawnGem, 600);
   setTimeout(spawnGem, 900);
@@ -496,6 +652,19 @@ document.getElementById("lvup-color").addEventListener("click", function () {
   buyUpgrade("color");
 });
 
+// メニューの画面切り替え(あつめる ⇄ ストーリー)
+document.getElementById("menu-atsumeru").addEventListener("click", function () {
+  showScreen("atsumeru");
+});
+document.getElementById("menu-story").addEventListener("click", function () {
+  showScreen("story");
+});
+
+// ストーリーを読む画面の「とじる」
+document.getElementById("story-close").addEventListener("click", function () {
+  storyOverlay.hidden = true;
+});
+
 // せってい関係
 document.getElementById("menu-settings").addEventListener("click", openSettings);
 document.getElementById("settings-close").addEventListener("click", function () {
@@ -508,14 +677,12 @@ document.getElementById("reset-no").addEventListener("click", function () {
   confirmOverlay.hidden = true; // 「いいえ」なら確認画面を閉じるだけ
 });
 
-// まだ作っていないボタンたち(押すと「準備中」のメッセージを出すだけ)
+// まだ作っていないボタン(押すと「準備中」のメッセージを出すだけ)
 function comingSoon() {
   showToast("この機能はまだ準備中です!おたのしみに");
 }
 
-document.getElementById("menu-atsumeru").addEventListener("click", comingSoon);
 document.getElementById("menu-store").addEventListener("click", comingSoon);
-document.getElementById("menu-story").addEventListener("click", comingSoon);
 
 
 /* ---------- ゲーム開始! ---------- */
@@ -523,6 +690,7 @@ document.getElementById("menu-story").addEventListener("click", comingSoon);
 // まず保存データを読み込んで、画面に表示する
 loadGame();
 updateDisplay();
+showScreen("atsumeru"); // 最初は「あつめる」画面から
 
 // 最初の宝石たちを、0.3秒ずつずらして3個出現させる
 setTimeout(spawnGem, 300);
