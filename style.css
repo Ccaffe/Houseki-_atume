@@ -45,7 +45,6 @@ body {
 .header,
 .status-panel,
 .menu,
-.settings-bar,
 .pr-banner {
   flex-shrink: 0;
 }
@@ -166,16 +165,14 @@ body {
   to   { opacity: 0; translate: 0 -60px; }
 }
 
-/* ---------- ③ ステータスパネル ---------- */
+/* ---------- ④ ステータスパネル ---------- */
 .status-panel {
   display: flex;
-  align-items: center;
-  gap: 14px;
   margin: 10px 12px;
-  padding: 16px 14px;
+  padding: 14px;
   /* 高さを固定しておく。強化の項目がこれから増えても
      パネル自体は大きくならず、中だけがスクロールする */
-  height: 150px;
+  height: 190px;
   /* 木の板のような茶色い背景と、金色っぽい二重枠 */
   background: linear-gradient(180deg, #4a3526 0%, #33241a 100%);
   border: 3px solid #8a6d45;
@@ -183,21 +180,42 @@ body {
   border-radius: 10px;
 }
 
-.lvup-button {
-  padding: 12px 14px;
-  font-family: inherit; /* まわりと同じフォントを使う */
-  font-size: 18px;
+/* 各行の左にある「Lv UP」ボタン。押すと宝石を払ってその場で強化できる。
+   上の段に「Lv UP」、下の段にお値段(💎の数)が出る */
+.row-lvup {
+  width: 92px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column; /* 「Lv UP」とお値段を縦に並べる */
+  align-items: center;
+  gap: 2px;
+  font-family: inherit;
+  font-size: 15px;
   font-weight: bold;
   color: #f0e2c8;
   background: linear-gradient(180deg, #5a4430 0%, #3a2a1c 100%);
   border: 2px solid #a08050;
   border-radius: 8px;
   cursor: pointer;
-  white-space: nowrap; /* 文字を折り返さない */
+  white-space: nowrap;
+  flex-shrink: 0; /* ボタンの幅はつぶさない */
 }
 
-.lvup-button:active {
+/* ボタンの中のお値段の文字(小さめ) */
+.row-cost {
+  font-size: 12px;
+  font-weight: normal;
+  color: #d8c8a8;
+}
+
+.row-lvup:active {
   transform: scale(0.95); /* 押した感を出す */
+}
+
+/* 宝石が足りないとき・レベルが最大のときは、ボタンを薄くして押せなくする */
+.row-lvup:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /* ゲージの行をまとめる箱。
@@ -228,44 +246,29 @@ body {
   border-radius: 3px;
 }
 
-/* 1行(名前+ゲージ+レベル)を横に並べる */
+/* 1行([Lv UPボタン]+名前+レベル)を横に並べる */
 .status-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   flex-shrink: 0; /* 行はつぶさない(収まらないぶんはスクロールに回す) */
 }
 
+/* 強化の名前(大きさ・形・色…)。写真に合わせて大きめの文字にする */
 .status-name {
-  width: 64px; /* 名前の幅をそろえて、ゲージの位置を合わせる */
-  font-size: 18px;
+  flex: 1; /* 余った横幅を使って、レベル表示を右端に押しやる */
+  font-size: 22px;
+  font-weight: bold;
 }
 
-/* ゲージの外枠(暗い溝) */
-.status-gauge {
-  flex: 1;
-  height: 14px;
-  background: #1c130d;
-  border: 1px solid #6b5638;
-  border-radius: 7px;
-  overflow: hidden; /* 中身がはみ出さないように */
-}
-
-/* ゲージの中身(たまっている部分)。width の % で長さが変わる */
-.status-gauge-fill {
-  height: 100%;
-  background: linear-gradient(180deg, #fff8e8 0%, #d8c8a8 100%);
-  border-radius: 7px;
-}
-
+/* いまのレベル(右端) */
 .status-level {
-  width: 48px;
-  font-size: 16px;
+  font-size: 20px;
   text-align: right;
   white-space: nowrap;
 }
 
-/* ---------- ④ 下のメニュー ---------- */
+/* ---------- ③ メニューボタン ---------- */
 .menu {
   display: flex;
   gap: 8px;
@@ -275,33 +278,21 @@ body {
 }
 
 .menu-button {
-  flex: 1; /* 3つのボタンを同じ幅で並べる */
-  padding: 12px 4px;
+  flex: 1; /* 4つのボタンを同じ幅で並べる */
+  padding: 12px 2px;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: bold;
   color: #f0e2c8;
   background: linear-gradient(180deg, #4a3526 0%, #2b1e14 100%);
   border: 2px solid #8a6d45;
   border-radius: 8px;
   cursor: pointer;
+  white-space: nowrap; /* ボタンの文字を折り返さない */
 }
 
 .menu-button:active {
   transform: scale(0.95);
-}
-
-/* 「せってい」の横長バー */
-.settings-bar {
-  margin: 0 10px 8px;
-  padding: 10px;
-  font-family: inherit;
-  font-size: 16px;
-  color: #d8ccb8;
-  background: linear-gradient(180deg, #55606d 0%, #303841 100%);
-  border: 2px solid #7a8694;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
 /* ---------- ⑤ PR枠 ---------- */
@@ -355,73 +346,12 @@ body {
   color: #f5e8cf;
 }
 
-.panel-balance {
-  text-align: center;
-  font-size: 16px;
-}
 
 .panel-subtitle {
   font-size: 15px;
   color: #cbbb9a;
 }
 
-/* 強化の1行(名前と説明+お値段ボタン) */
-.upgrade-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid #6b5638;
-  border-radius: 8px;
-}
-
-.upgrade-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.upgrade-name {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.upgrade-level {
-  font-size: 14px;
-  font-weight: normal;
-  color: #cbbb9a;
-}
-
-.upgrade-desc {
-  font-size: 13px;
-  color: #cbbb9a;
-}
-
-/* お値段が書いてある強化ボタン */
-.upgrade-button {
-  min-width: 88px;
-  padding: 10px 8px;
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: bold;
-  color: #f0e2c8;
-  background: linear-gradient(180deg, #5a4430 0%, #3a2a1c 100%);
-  border: 2px solid #a08050;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.upgrade-button:active {
-  transform: scale(0.95);
-}
-
-/* 宝石が足りないとき・レベルが最大のときは、ボタンを薄くして押せなくする */
-.upgrade-button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
 
 /* 「とじる」ボタン */
 .close-button {

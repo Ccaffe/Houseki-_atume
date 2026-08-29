@@ -47,9 +47,9 @@ const SAVE_VERSION = 2;
 // 3種類の強化のデータをひとまとめにしたもの。
 // upgrades.size.level のように「.」でつないで中身を取り出せる
 const upgrades = {
-  size:  { level: 1 }, // 大きさ
-  shape: { level: 1 }, // 形
-  color: { level: 1 }, // 色
+  size:  { name: "大きさ", level: 1 },
+  shape: { name: "形",     level: 1 },
+  color: { name: "色",     level: 1 },
 };
 
 // 次のレベルに上げるのに必要な宝石の数。
@@ -65,7 +65,6 @@ function upgradeCost(level) {
 const gemCountDisplay = document.getElementById("gem-count"); // 宝石の数の表示
 const userLevelDisplay = document.getElementById("user-level"); // レベルの表示
 const mainArea = document.getElementById("main-area");         // 宝石が出るエリア
-const upgradeOverlay = document.getElementById("upgrade-overlay");   // 強化画面
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
 const confirmOverlay = document.getElementById("confirm-overlay");   // リセット確認画面
 const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(トースト表示に使う)
@@ -73,31 +72,17 @@ const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(ト�
 
 /* ---------- 画面の表示を新しくする関数 ---------- */
 
-function updateDisplay() {
-  // toLocaleString() を使うと 1000 → 「1,000」のようにカンマ付きになる
-  gemCountDisplay.textContent = gemCount.toLocaleString();
-
-  // ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
-  const level = upgrades.size.level + upgrades.shape.level + upgrades.color.level - 2;
-  userLevelDisplay.textContent = level;
-}
-
-// 強化1種類ぶんの表示(ゲージ・レベル・お値段・ボタン)を新しくする。
+// 強化1種類ぶんの表示(レベル・ボタンのお値段)を新しくする。
 // type には "size"(大きさ)・"shape"(形)・"color"(色)のどれかが入る
 function updateOneUpgrade(type) {
   const up = upgrades[type]; // upgrades["size"] は upgrades.size と同じ意味
 
-  // メイン画面と強化画面のレベル表示
+  // 右端のレベル表示
   document.getElementById(type + "-level").textContent = up.level;
-  document.getElementById("upgrade-" + type + "-level").textContent = up.level;
 
-  // ゲージの長さ(レベル10で100%になる)
-  const percent = (up.level / MAX_LEVEL) * 100;
-  document.getElementById("gauge-" + type).style.width = percent + "%";
-
-  // お値段の表示と、ボタンを押せるかどうか
-  const button = document.getElementById("upgrade-" + type + "-button");
-  const costDisplay = document.getElementById("upgrade-" + type + "-cost");
+  // Lv UP ボタンのお値段と、押せるかどうか
+  const button = document.getElementById("lvup-" + type);
+  const costDisplay = document.getElementById(type + "-cost");
   if (up.level >= MAX_LEVEL) {
     // もう上限なら「MAX」にして押せなくする
     costDisplay.textContent = "MAX";
@@ -110,9 +95,16 @@ function updateOneUpgrade(type) {
   }
 }
 
-// 強化画面ぜんぶの表示を新しくする
-function updateUpgradeScreen() {
-  document.getElementById("upgrade-gem-count").textContent = gemCount.toLocaleString();
+function updateDisplay() {
+  // toLocaleString() を使うと 1000 → 「1,000」のようにカンマ付きになる
+  gemCountDisplay.textContent = gemCount.toLocaleString();
+
+  // ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
+  const level = upgrades.size.level + upgrades.shape.level + upgrades.color.level - 2;
+  userLevelDisplay.textContent = level;
+
+  // 宝石が増減すると「Lv UP ボタンを押せるかどうか」も変わるので、
+  // ステータスパネルの表示もここでまとめて新しくする
   updateOneUpgrade("size");
   updateOneUpgrade("shape");
   updateOneUpgrade("color");
@@ -409,11 +401,11 @@ function buyUpgrade(type) {
   spentGems += cost;
   up.level += 1;
 
-  // 音を鳴らして、画面と保存データを新しくする
+  // 音を鳴らして、画面と保存データを新しくして、お知らせを出す
   playUpgradeSound();
   updateDisplay();
-  updateUpgradeScreen();
   saveGame();
+  showToast(up.name + " が Lv." + up.level + " になった!");
 }
 
 
@@ -479,7 +471,6 @@ function doReset() {
 
   // 4. 表示を新しくして、開いていた画面を閉じる
   updateDisplay();
-  updateUpgradeScreen();
   confirmOverlay.hidden = true;
   settingsOverlay.hidden = true;
 
@@ -494,24 +485,15 @@ function doReset() {
 /* ---------- ボタンとの関連付け ---------- */
 // addEventListener("click", 関数) = 「クリックされたらこの関数を動かして」というお願い
 
-// Lv UP ボタン → 強化画面を開く
-document.getElementById("lvup-button").addEventListener("click", function () {
-  updateUpgradeScreen(); // 開く前に最新の数字にしておく
-  upgradeOverlay.hidden = false;
-});
-
-// 強化画面の中のボタンたち
-document.getElementById("upgrade-size-button").addEventListener("click", function () {
+// 各行の「Lv UP」ボタン → 押すとその場でレベルアップ
+document.getElementById("lvup-size").addEventListener("click", function () {
   buyUpgrade("size");
 });
-document.getElementById("upgrade-shape-button").addEventListener("click", function () {
+document.getElementById("lvup-shape").addEventListener("click", function () {
   buyUpgrade("shape");
 });
-document.getElementById("upgrade-color-button").addEventListener("click", function () {
+document.getElementById("lvup-color").addEventListener("click", function () {
   buyUpgrade("color");
-});
-document.getElementById("upgrade-close").addEventListener("click", function () {
-  upgradeOverlay.hidden = true; // hidden を付けると隠れる
 });
 
 // せってい関係
@@ -541,7 +523,6 @@ document.getElementById("menu-story").addEventListener("click", comingSoon);
 // まず保存データを読み込んで、画面に表示する
 loadGame();
 updateDisplay();
-updateUpgradeScreen();
 
 // 最初の宝石たちを、0.3秒ずつずらして3個出現させる
 setTimeout(spawnGem, 300);

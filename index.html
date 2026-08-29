@@ -143,43 +143,41 @@
     </template>
 
     <!-- ===============================
-         ③ ステータスパネル(大きさ・形・色のゲージ)
-         ※ 今はまだ表示だけ。レベルアップ機能はこれから作る
+         ③ メニューボタン(1列に4つ並ぶ)
+         あつめる・ストーリー・ストアは「準備中」。せっていは統計画面を開く
+         =============================== -->
+    <nav class="menu">
+      <button class="menu-button" id="menu-atsumeru">あつめる</button>
+      <button class="menu-button" id="menu-story">ストーリー</button>
+      <button class="menu-button" id="menu-store">ストア</button>
+      <button class="menu-button" id="menu-settings">せってい</button>
+    </nav>
+
+    <!-- ===============================
+         ④ ステータスパネル(強化の一覧)
+         1行 = [Lv UPボタン] 名前 … いまのレベル。
+         ボタンを押すと、宝石を払ってその場でレベルアップ!
+         行が増えたらパネルの中だけ縦スクロールできる
          =============================== -->
     <section class="status-panel">
-      <button class="lvup-button" id="lvup-button">Lv UP</button>
-
       <div class="status-rows">
-        <!-- 1行分:名前+ゲージ+レベル表示、が3つ並ぶ。
-             ゲージの長さ(width)は script.js がレベルに合わせて変える -->
         <div class="status-row">
+          <button class="row-lvup" id="lvup-size">Lv UP<span class="row-cost">💎 <span id="size-cost">10</span></span></button>
           <span class="status-name">大きさ</span>
-          <div class="status-gauge"><div class="status-gauge-fill" id="gauge-size" style="width: 10%"></div></div>
           <span class="status-level">Lv. <span id="size-level">1</span></span>
         </div>
         <div class="status-row">
+          <button class="row-lvup" id="lvup-shape">Lv UP<span class="row-cost">💎 <span id="shape-cost">10</span></span></button>
           <span class="status-name">形</span>
-          <div class="status-gauge"><div class="status-gauge-fill" id="gauge-shape" style="width: 10%"></div></div>
           <span class="status-level">Lv. <span id="shape-level">1</span></span>
         </div>
         <div class="status-row">
+          <button class="row-lvup" id="lvup-color">Lv UP<span class="row-cost">💎 <span id="color-cost">10</span></span></button>
           <span class="status-name">色</span>
-          <div class="status-gauge"><div class="status-gauge-fill" id="gauge-color" style="width: 10%"></div></div>
           <span class="status-level">Lv. <span id="color-level">1</span></span>
         </div>
       </div>
     </section>
-
-    <!-- ===============================
-         ④ 下のメニューボタン
-         ※ 今はまだ「準備中」。押すとメッセージが出るだけ
-         =============================== -->
-    <nav class="menu">
-      <button class="menu-button" id="menu-atsumeru">あつめる 🧲</button>
-      <button class="menu-button" id="menu-store">ストア 🎁</button>
-      <button class="menu-button" id="menu-story">ストーリー 📖</button>
-    </nav>
-    <button class="settings-bar" id="menu-settings">せってい</button>
 
     <!-- ===============================
          ⑤ PR枠(広告を入れる予定の場所)
@@ -187,45 +185,7 @@
     <footer class="pr-banner">PR</footer>
 
     <!-- ===============================
-         ⑥ 強化(Lv UP)画面
-         ふだんは hidden で隠れていて、Lv UP ボタンを押すと出てくる
-         =============================== -->
-    <div class="overlay" id="upgrade-overlay" hidden>
-      <div class="panel">
-        <h2 class="panel-title">✦ 宝石を強化する ✦</h2>
-        <p class="panel-balance">もっている宝石 💎 <span id="upgrade-gem-count">0</span></p>
-
-        <!-- 強化1行分:名前とレベル+説明、右にお値段ボタン -->
-        <div class="upgrade-row">
-          <div class="upgrade-info">
-            <span class="upgrade-name">大きさ <span class="upgrade-level">Lv. <span id="upgrade-size-level">1</span></span></span>
-            <span class="upgrade-desc">もっと大きくて高得点な宝石が出るようになる(見た目はLv7で上限)</span>
-          </div>
-          <button class="upgrade-button" id="upgrade-size-button">💎 <span id="upgrade-size-cost">10</span></button>
-        </div>
-
-        <div class="upgrade-row">
-          <div class="upgrade-info">
-            <span class="upgrade-name">形 <span class="upgrade-level">Lv. <span id="upgrade-shape-level">1</span></span></span>
-            <span class="upgrade-desc">新しい形の高得点な宝石が追加される(四角形→七角形→ハート→星型)</span>
-          </div>
-          <button class="upgrade-button" id="upgrade-shape-button">💎 <span id="upgrade-shape-cost">10</span></button>
-        </div>
-
-        <div class="upgrade-row">
-          <div class="upgrade-info">
-            <span class="upgrade-name">色 <span class="upgrade-level">Lv. <span id="upgrade-color-level">1</span></span></span>
-            <span class="upgrade-desc">新しい色の高得点な宝石が追加される(赤→オレンジ→黄→緑→青)</span>
-          </div>
-          <button class="upgrade-button" id="upgrade-color-button">💎 <span id="upgrade-color-cost">10</span></button>
-        </div>
-
-        <button class="close-button" id="upgrade-close">とじる</button>
-      </div>
-    </div>
-
-    <!-- ===============================
-         ⑦ せってい画面(統計が見られる)
+         ⑥ せってい画面(統計が見られる)
          =============================== -->
     <div class="overlay" id="settings-overlay" hidden>
       <div class="panel">
@@ -245,7 +205,7 @@
     </div>
 
     <!-- ===============================
-         ⑧ リセットの確認画面
+         ⑦ リセットの確認画面
          「データをリセット」を押すと出てくる。
          ブラウザ標準の confirm() は使えない環境があるので、自作している
          =============================== -->
