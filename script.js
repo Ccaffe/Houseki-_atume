@@ -73,6 +73,24 @@ const stories = [
 ];
 
 
+/* =========================================================
+   ★ ストア商品コーナー ★
+   商品はここに書くだけで、ストアの一覧に自動で並ぶ!
+   { icon, name, description, price } のかたまりをコピーして増やせる。
+   price の単位は日本円(¥)。
+   ※ 本物のお支払い機能はまだない「仮オープン」なので、
+     ボタンを押してもお金はかからない(buyProduct 関数を見てね)
+   ========================================================= */
+const products = [
+  {
+    icon: "💝",
+    name: "製作者支援",
+    description: "ゲームの製作者にお心づけを送って、開発を応援できます。",
+    price: 500,
+  },
+];
+
+
 /* ---------- ゲームのデータ(変数) ---------- */
 
 // 「let」は「あとで中身が変わる変数」を作る書き方
@@ -115,6 +133,8 @@ const statusPanel = document.getElementById("status-panel");   // 強化パネ�
 const storyScreen = document.getElementById("story-screen");   // ストーリー画面
 const storyList = document.getElementById("story-list");       // ストーリーの一覧
 const storyOverlay = document.getElementById("story-overlay"); // ストーリーを読む画面
+const storeScreen = document.getElementById("store-screen");   // ストア画面
+const storeList = document.getElementById("store-list");       // 商品の一覧
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
 const confirmOverlay = document.getElementById("confirm-overlay");   // リセット確認画面
 const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(トースト表示に使う)
@@ -468,25 +488,33 @@ function buyUpgrade(type) {
 }
 
 
-/* ---------- 画面の切り替え(あつめる ⇄ ストーリー) ---------- */
-// name には "atsumeru" か "story" が入る
+/* ---------- 画面の切り替え(あつめる・ストーリー・ストア) ---------- */
+// name には "atsumeru"・"story"・"store" のどれかが入る
 
 function showScreen(name) {
-  const isStory = name === "story";
+  // まず全部の画面を隠して…
+  mainArea.hidden = true;
+  statusPanel.hidden = true;
+  storyScreen.hidden = true;
+  storeScreen.hidden = true;
 
-  // hidden を付けたり外したりして、見える画面を切り替える
-  mainArea.hidden = isStory;
-  statusPanel.hidden = isStory;
-  storyScreen.hidden = !isStory;
-
-  // ストーリー画面を開くときは、一覧を最新の状態で作り直す
-  if (isStory) {
+  // …選ばれた画面だけを表示する(開くときに一覧を最新の状態で作り直す)
+  if (name === "story") {
+    storyScreen.hidden = false;
     buildStoryList();
+  } else if (name === "store") {
+    storeScreen.hidden = false;
+    buildStoreList();
+  } else {
+    // "atsumeru"(宝石エリアと強化パネルのセット)
+    mainArea.hidden = false;
+    statusPanel.hidden = false;
   }
 
   // いま開いている画面のメニューボタンを光らせる
-  document.getElementById("menu-atsumeru").classList.toggle("active", !isStory);
-  document.getElementById("menu-story").classList.toggle("active", isStory);
+  document.getElementById("menu-atsumeru").classList.toggle("active", name === "atsumeru");
+  document.getElementById("menu-story").classList.toggle("active", name === "story");
+  document.getElementById("menu-store").classList.toggle("active", name === "store");
 }
 
 
@@ -560,6 +588,59 @@ function openStoryReader(index) {
     "✦ " + (index + 1) + ". " + stories[index].title + " ✦";
   document.getElementById("story-read-text").textContent = stories[index].text;
   storyOverlay.hidden = false;
+}
+
+
+/* ---------- ストア ---------- */
+
+// 商品の一覧を作る(ストア商品コーナーの products から)
+function buildStoreList() {
+  storeList.innerHTML = ""; // まず一覧を空っぽにして、作り直す
+
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i];
+
+    // カードの入れ物
+    const card = document.createElement("div");
+    card.className = "product-card";
+
+    // 左:商品の絵(絵文字)
+    const icon = document.createElement("div");
+    icon.className = "product-icon";
+    icon.textContent = product.icon;
+
+    // 真ん中:商品名と説明
+    const info = document.createElement("div");
+    info.className = "product-info";
+    const name = document.createElement("div");
+    name.className = "product-name";
+    name.textContent = product.name;
+    const description = document.createElement("div");
+    description.className = "product-desc";
+    description.textContent = product.description;
+    info.appendChild(name);
+    info.appendChild(description);
+
+    // 右:お値段の購入ボタン
+    const buyButton = document.createElement("button");
+    buyButton.className = "product-buy";
+    buyButton.textContent = "¥" + product.price.toLocaleString();
+    buyButton.addEventListener("click", function () {
+      buyProduct(product);
+    });
+
+    card.appendChild(icon);
+    card.appendChild(info);
+    card.appendChild(buyButton);
+    storeList.appendChild(card);
+  }
+}
+
+// 購入ボタンが押されたときの処理。
+// 本物のお支払い機能はまだないので、いまはお知らせを出すだけ。
+// 将来ここに、決済サービス(お支払いの仕組み)との連携処理を書く
+function buyProduct(product) {
+  showToast("「" + product.name + "」のお支払い機能は準備中です");
 }
 
 
@@ -659,6 +740,9 @@ document.getElementById("menu-atsumeru").addEventListener("click", function () {
 document.getElementById("menu-story").addEventListener("click", function () {
   showScreen("story");
 });
+document.getElementById("menu-store").addEventListener("click", function () {
+  showScreen("store");
+});
 
 // ストーリーを読む画面の「とじる」
 document.getElementById("story-close").addEventListener("click", function () {
@@ -676,14 +760,6 @@ document.getElementById("reset-yes").addEventListener("click", doReset);
 document.getElementById("reset-no").addEventListener("click", function () {
   confirmOverlay.hidden = true; // 「いいえ」なら確認画面を閉じるだけ
 });
-
-// まだ作っていないボタン(押すと「準備中」のメッセージを出すだけ)
-function comingSoon() {
-  showToast("この機能はまだ準備中です!おたのしみに");
-}
-
-document.getElementById("menu-store").addEventListener("click", comingSoon);
-
 
 /* ---------- ゲーム開始! ---------- */
 

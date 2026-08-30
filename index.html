@@ -148,10 +148,27 @@
          一覧の中身は script.js の「ストーリー編集コーナー」から作られる
          =============================== -->
     <section class="story-screen" id="story-screen" hidden>
-      <h2 class="story-heading">✦ ストーリー ✦</h2>
+      <h2 class="screen-heading">✦ ストーリー ✦</h2>
       <div class="story-list" id="story-list">
         <!-- ここに script.js がストーリーのカードを並べる -->
       </div>
+    </section>
+
+    <!-- ===============================
+         ③-C ストア画面(ふだんは hidden で隠れている)
+         メニューの「ストア」を押すと表示される。
+         商品は script.js の「ストア商品コーナー」から作られる。
+         ※ 本物のお支払い機能はまだない「仮オープン」
+         =============================== -->
+    <section class="store-screen" id="store-screen" hidden>
+      <h2 class="screen-heading">✦ ストア ✦</h2>
+      <div class="store-list" id="store-list">
+        <!-- ここに script.js が商品のカードを並べる -->
+      </div>
+      <p class="store-note">
+        ※ ストアは準備中の仮オープンです。<br>
+        ボタンを押しても、実際のお支払いは発生しません。
+      </p>
     </section>
 
     <!-- ===============================
