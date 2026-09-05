@@ -93,9 +93,12 @@ const products = [
 
 /* ---------- ゲームのデータ(変数) ---------- */
 
+// はじめて遊ぶ人へのプレゼント(最初から持っている宝石の数)
+const STARTING_GEMS = 50;
+
 // 「let」は「あとで中身が変わる変数」を作る書き方
-let gemCount = 0;     // いま持っている宝石(強化に使うと減る)
-let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減らない)
+let gemCount = STARTING_GEMS;  // いま持っている宝石(強化に使うと減る)
+let totalGems = STARTING_GEMS; // これまでに集めた宝石の総数(統計用。プレゼントぶんも含む)
 let tapCount = 0;     // 宝石をタップした回数(統計用)
 let spentGems = 0;    // 強化につかった宝石の数(統計用)
 let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だけ読める)
@@ -117,15 +120,32 @@ let feverCountTimer = null;  // 残り時間をカウントダウンするタイ
 
 // 保存データのバージョン。ゲームのルールを大きく変えたときに
 // この数字を上げると、みんなの古い保存データが1回だけ自動リセットされる
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
-// 3種類の強化のデータをひとまとめにしたもの。
-// upgrades.size.level のように「.」でつないで中身を取り出せる
+// 4種類の強化のデータをひとまとめにしたもの。
+// upgrades.shape.level のように「.」でつないで中身を取り出せる
 const upgrades = {
-  size:  { name: "大きさ", level: 1 },
-  shape: { name: "形",     level: 1 },
-  color: { name: "色",     level: 1 },
+  shape: { name: "形",     level: 1 }, // 宝石の形が変わる+獲得数アップ
+  color: { name: "色",     level: 1 }, // 宝石の色が増える+獲得数アップ
+  size:  { name: "大きさ", level: 1 }, // 宝石が大きくなる+獲得数アップ
+  speed: { name: "秒数",   level: 1 }, // 宝石が出てくるまでの時間が短くなる
 };
+
+// 強化が解放される順番。
+// 前の強化を Lv MAX まで上げると、次の強化が解放される!
+const UPGRADE_ORDER = ["shape", "color", "size", "speed"];
+
+// その強化がもう解放されているかどうかを調べる関数。
+// true(はい)か false(いいえ)が返ってくる
+function isUpgradeUnlocked(type) {
+  const place = UPGRADE_ORDER.indexOf(type); // 順番の何番目か(0から)
+  if (place === 0) {
+    return true; // 最初の「形」はいつでも解放されている
+  }
+  // ひとつ前の強化が MAX なら解放!
+  const previousType = UPGRADE_ORDER[place - 1];
+  return upgrades[previousType].level >= MAX_LEVEL;
+}
 
 // 次のレベルに上げるのに必要な宝石の数。
 // レベル1→2 は 10個、2→3 は 20個…と、レベル×10 で増えていく
@@ -153,17 +173,28 @@ const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(ト�
 
 /* ---------- 画面の表示を新しくする関数 ---------- */
 
-// 強化1種類ぶんの表示(レベル・ボタンのお値段)を新しくする。
-// type には "size"(大きさ)・"shape"(形)・"color"(色)のどれかが入る
+// 強化1種類ぶんの表示(レベル・ボタンのお値段・解放状態)を新しくする。
+// type には "shape"・"color"・"size"・"speed" のどれかが入る
 function updateOneUpgrade(type) {
-  const up = upgrades[type]; // upgrades["size"] は upgrades.size と同じ意味
+  const up = upgrades[type]; // upgrades["shape"] は upgrades.shape と同じ意味
 
   // 右端のレベル表示
   document.getElementById(type + "-level").textContent = up.level;
 
-  // Lv UP ボタンのお値段と、押せるかどうか
   const button = document.getElementById("lvup-" + type);
   const costDisplay = document.getElementById(type + "-cost");
+  const row = button.closest(".status-row"); // ボタンが入っている行
+
+  if (!isUpgradeUnlocked(type)) {
+    // まだ解放されていない強化:行を薄くして、🔒マークで押せなくする
+    row.classList.add("locked");
+    costDisplay.textContent = "🔒";
+    button.disabled = true;
+    return;
+  }
+
+  row.classList.remove("locked"); // 解放済みなら薄い表示をやめる
+
   if (up.level >= MAX_LEVEL) {
     // もう上限なら「MAX」にして押せなくする
     costDisplay.textContent = "MAX";
@@ -181,14 +212,17 @@ function updateDisplay() {
   gemCountDisplay.textContent = gemCount.toLocaleString();
 
   // ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
-  const level = upgrades.size.level + upgrades.shape.level + upgrades.color.level - 2;
+  const level =
+    upgrades.shape.level + upgrades.color.level +
+    upgrades.size.level + upgrades.speed.level - 3;
   userLevelDisplay.textContent = level;
 
   // 宝石が増減すると「Lv UP ボタンを押せるかどうか」も変わるので、
   // ステータスパネルの表示もここでまとめて新しくする
-  updateOneUpgrade("size");
   updateOneUpgrade("shape");
   updateOneUpgrade("color");
+  updateOneUpgrade("size");
+  updateOneUpgrade("speed");
 }
 
 
@@ -211,6 +245,7 @@ function saveGame() {
       sizeLevel: upgrades.size.level,
       shapeLevel: upgrades.shape.level,
       colorLevel: upgrades.color.level,
+      speedLevel: upgrades.speed.level,
     };
     localStorage.setItem("housekiSave", JSON.stringify(data));
   } catch (e) {
@@ -241,6 +276,7 @@ function loadGame() {
     upgrades.size.level = data.sizeLevel || 1;
     upgrades.shape.level = data.shapeLevel || 1;
     upgrades.color.level = data.colorLevel || 1;
+    upgrades.speed.level = data.speedLevel || 1;
   } catch (e) {
     // 読み込めない環境では最初からスタート
   }
@@ -339,8 +375,10 @@ function spawnGem() {
 
   // すでに画面に上限の数まで宝石があったら、これ以上は出さない。
   // 上限はふだん MAX_GEMS(3個)、フィーバー中は FEVER_MAX_GEMS(12個)!
+  // 「:not(.collected)」= 消えるアニメーション中の宝石は数に入れない
+  // (数えてしまうと、秒数レベルが高いとき新しい宝石が出そこねることがある)
   const maxGems = feverSecondsLeft > 0 ? FEVER_MAX_GEMS : MAX_GEMS;
-  const gemsOnScreen = mainArea.querySelectorAll(".gem").length;
+  const gemsOnScreen = mainArea.querySelectorAll(".gem:not(.collected)").length;
   if (gemsOnScreen >= maxGems) {
     return; // 「return」= ここで関数を終わりにする
   }
@@ -469,8 +507,10 @@ function collectGem(gem) {
   }, 400);
 
   // 8. 少し待ってから、新しい宝石を出現させる。
-  //    ふだんは0.5〜1.5秒後、フィーバー中はすぐ(0.15〜0.45秒後)!
+  //    ふだんは0.5〜1.5秒後。「秒数」レベル1つにつき0.1秒ずつ早くなる
+  //    (早くなりすぎないよう、最短は0.1秒)。フィーバー中はいつでも爆速!
   let waitTime = 500 + Math.random() * 1000;
+  waitTime = Math.max(100, waitTime - (upgrades.speed.level - 1) * 100);
   if (feverSecondsLeft > 0) {
     waitTime = 150 + Math.random() * 300;
   }
@@ -606,12 +646,11 @@ function playFeverSound() {
 function buyUpgrade(type) {
   const up = upgrades[type];
 
-  // 上限チェック(ボタンは押せないはずだけど、念のため)
-  if (up.level >= MAX_LEVEL) {
+  // まだ解放されていない・上限・宝石不足のときは何もしない
+  // (ボタンは押せないはずだけど、念のためのチェック)
+  if (!isUpgradeUnlocked(type) || up.level >= MAX_LEVEL) {
     return;
   }
-
-  // 宝石が足りるかチェック
   const cost = upgradeCost(up.level);
   if (gemCount < cost) {
     return;
@@ -626,7 +665,15 @@ function buyUpgrade(type) {
   playUpgradeSound();
   updateDisplay();
   saveGame();
-  showToast(up.name + " が Lv." + up.level + " になった!");
+
+  // MAXになったら、次の強化が解放されたことをお知らせする
+  const place = UPGRADE_ORDER.indexOf(type);
+  const nextType = UPGRADE_ORDER[place + 1]; // 次がなければ undefined になる
+  if (up.level >= MAX_LEVEL && nextType !== undefined) {
+    showToast(up.name + " がMAX! 「" + upgrades[nextType].name + "」の強化が解放された!");
+  } else {
+    showToast(up.name + " が Lv." + up.level + " になった!");
+  }
 }
 
 
@@ -831,14 +878,15 @@ function doReset() {
     // 消せなくてもそのまま進む
   }
 
-  // 2. ゲームの変数をぜんぶ最初の状態に戻す
-  gemCount = 0;
-  totalGems = 0;
+  // 2. ゲームの変数をぜんぶ最初の状態に戻す(プレゼントの宝石50個も復活)
+  gemCount = STARTING_GEMS;
+  totalGems = STARTING_GEMS;
   tapCount = 0;
   spentGems = 0;
-  upgrades.size.level = 1;
   upgrades.shape.level = 1;
   upgrades.color.level = 1;
+  upgrades.size.level = 1;
+  upgrades.speed.level = 1;
   unlockedStories = 1;
 
   // 3. フィーバー中だったら終わらせて、画面に残っている宝石をぜんぶ消す
@@ -876,6 +924,9 @@ document.getElementById("lvup-shape").addEventListener("click", function () {
 });
 document.getElementById("lvup-color").addEventListener("click", function () {
   buyUpgrade("color");
+});
+document.getElementById("lvup-speed").addEventListener("click", function () {
+  buyUpgrade("speed");
 });
 
 // メニューの画面切り替え(あつめる ⇄ ストーリー)

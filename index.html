@@ -178,12 +178,9 @@
          行が増えたらパネルの中だけ縦スクロールできる
          =============================== -->
     <section class="status-panel" id="status-panel">
+      <!-- 行の並び順は解放される順(形→色→大きさ→秒数)。
+           前の強化を Lv MAX にすると、次の行が解放される(script.js が管理) -->
       <div class="status-rows">
-        <div class="status-row">
-          <button class="row-lvup" id="lvup-size">Lv UP<span class="row-cost">💎 <span id="size-cost">10</span></span></button>
-          <span class="status-name">大きさ</span>
-          <span class="status-level">Lv. <span id="size-level">1</span></span>
-        </div>
         <div class="status-row">
           <button class="row-lvup" id="lvup-shape">Lv UP<span class="row-cost">💎 <span id="shape-cost">10</span></span></button>
           <span class="status-name">形</span>
@@ -193,6 +190,16 @@
           <button class="row-lvup" id="lvup-color">Lv UP<span class="row-cost">💎 <span id="color-cost">10</span></span></button>
           <span class="status-name">色</span>
           <span class="status-level">Lv. <span id="color-level">1</span></span>
+        </div>
+        <div class="status-row">
+          <button class="row-lvup" id="lvup-size">Lv UP<span class="row-cost">💎 <span id="size-cost">10</span></span></button>
+          <span class="status-name">大きさ</span>
+          <span class="status-level">Lv. <span id="size-level">1</span></span>
+        </div>
+        <div class="status-row">
+          <button class="row-lvup" id="lvup-speed">Lv UP<span class="row-cost">💎 <span id="speed-cost">10</span></span></button>
+          <span class="status-name">秒数</span>
+          <span class="status-level">Lv. <span id="speed-level">1</span></span>
         </div>
       </div>
     </section>
