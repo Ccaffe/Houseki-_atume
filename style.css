@@ -77,6 +77,7 @@ body {
   flex: 1;            /* 余った縦スペースを全部使う */
   min-height: 120px;  /* 画面がせまくても、最低このぶんは宝石エリアを残す */
   overflow: hidden;   /* はみ出したものを隠す */
+  touch-action: none; /* エリア内では拡大などのブラウザ操作をしない(同時タップ用) */
   /* 窓から月明かりが差すようなイメージのグラデーション */
   background:
     radial-gradient(circle at 75% 30%, rgba(120, 140, 190, 0.25) 0%, transparent 45%),
@@ -92,7 +93,9 @@ body {
   border: none;
   padding: 0;
   cursor: pointer;  /* マウスを乗せると指マークにする */
-  touch-action: manipulation; /* スマホでダブルタップ拡大が起きないようにする */
+  /* touch-action: none = 宝石の上では拡大などのブラウザ操作をしない。
+     2本指で同時にタップしても、ズームせずそれぞれの宝石が集められる */
+  touch-action: none;
   /* hue-rotate = 色相を回す(宝石の色を変える)。
      基本の赤から、--hue の角度ぶんだけ色相環を回る(青は240度)。
      --hue の数字は script.js が宝石の「色レベル」から計算して入れる。
@@ -177,7 +180,7 @@ body {
   font-size: 64px;
   line-height: 1;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: none; /* 宝石と同じく、同時タップでもズームしない */
   /* 金色に光らせて、プルプルゆらして目立たせる */
   filter: drop-shadow(0 0 18px rgba(255, 215, 100, 0.9));
   animation:

@@ -412,8 +412,11 @@ function spawnGem() {
   const hue = (gemColorLevel - 1) * hueStep;
   gem.style.setProperty("--hue", hue + "deg"); // style.css の hue-rotate で使われる
 
-  // この宝石がクリックされたら collectGem を動かす
-  gem.addEventListener("click", function () {
+  // この宝石がタップされたら collectGem を動かす。
+  // 「click」ではなく「pointerdown」を使うのがポイント!
+  // click はスマホで2本指同時にタップしても1つしか発生しないけど、
+  // pointerdown は指1本ごとに発生するので、複数同時タップで複数集められる
+  gem.addEventListener("pointerdown", function () {
     collectGem(gem);
   });
 
@@ -506,7 +509,8 @@ function spawnChest() {
   // 開けたかどうかのメモ(2回開けないように)
   let opened = false;
 
-  chest.addEventListener("click", function () {
+  // 宝箱も pointerdown で、タップした瞬間にすぐ開くようにする
+  chest.addEventListener("pointerdown", function () {
     if (opened) {
       return;
     }
