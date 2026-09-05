@@ -93,12 +93,9 @@ const products = [
 
 /* ---------- ゲームのデータ(変数) ---------- */
 
-// はじめて遊ぶ人へのプレゼント(最初から持っている宝石の数)
-const STARTING_GEMS = 50;
-
 // 「let」は「あとで中身が変わる変数」を作る書き方
-let gemCount = STARTING_GEMS;  // いま持っている宝石(強化に使うと減る)
-let totalGems = STARTING_GEMS; // これまでに集めた宝石の総数(統計用。プレゼントぶんも含む)
+let gemCount = 0;     // いま持っている宝石(強化に使うと減る)
+let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減らない)
 let tapCount = 0;     // 宝石をタップした回数(統計用)
 let spentGems = 0;    // 強化につかった宝石の数(統計用)
 let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だけ読める)
@@ -117,6 +114,13 @@ const CHEST_LIFETIME = 20;   // 宝箱を開けないと消えるまでの時間
 let feverSecondsLeft = 0;    // フィーバーの残り秒数(0なら通常モード)
 let feverSpawnTimer = null;  // フィーバー中に宝石を出し続けるタイマー
 let feverCountTimer = null;  // 残り時間をカウントダウンするタイマー
+
+// ---- はじめてボーナスの設定 ----
+// はじめて遊ぶときは、宝石が画面いっぱいに出続けて、
+// この数(50個)をあつめるまで止まらない!楽しいスタート用
+const WELCOME_GOAL = 50;
+let welcomeRushActive = false;  // はじめてボーナス中かどうか
+let welcomeSpawnTimer = null;   // ボーナス中に宝石を出し続けるタイマー
 
 // 保存データのバージョン。ゲームのルールを大きく変えたときに
 // この数字を上げると、みんなの古い保存データが1回だけ自動リセットされる
@@ -374,10 +378,12 @@ function spawnGem() {
   }
 
   // すでに画面に上限の数まで宝石があったら、これ以上は出さない。
-  // 上限はふだん MAX_GEMS(3個)、フィーバー中は FEVER_MAX_GEMS(12個)!
+  // 上限はふだん MAX_GEMS(3個)。
+  // フィーバー中とはじめてボーナス中は FEVER_MAX_GEMS(12個)!
   // 「:not(.collected)」= 消えるアニメーション中の宝石は数に入れない
   // (数えてしまうと、秒数レベルが高いとき新しい宝石が出そこねることがある)
-  const maxGems = feverSecondsLeft > 0 ? FEVER_MAX_GEMS : MAX_GEMS;
+  const isRushTime = feverSecondsLeft > 0 || welcomeRushActive;
+  const maxGems = isRushTime ? FEVER_MAX_GEMS : MAX_GEMS;
   const gemsOnScreen = mainArea.querySelectorAll(".gem:not(.collected)").length;
   if (gemsOnScreen >= maxGems) {
     return; // 「return」= ここで関数を終わりにする
@@ -508,13 +514,75 @@ function collectGem(gem) {
 
   // 8. 少し待ってから、新しい宝石を出現させる。
   //    ふだんは0.5〜1.5秒後。「秒数」レベル1つにつき0.1秒ずつ早くなる
-  //    (早くなりすぎないよう、最短は0.1秒)。フィーバー中はいつでも爆速!
+  //    (早くなりすぎないよう、最短は0.1秒)。
+  //    フィーバー中とはじめてボーナス中はいつでも爆速!
   let waitTime = 500 + Math.random() * 1000;
   waitTime = Math.max(100, waitTime - (upgrades.speed.level - 1) * 100);
-  if (feverSecondsLeft > 0) {
+  if (feverSecondsLeft > 0 || welcomeRushActive) {
     waitTime = 150 + Math.random() * 300;
   }
   setTimeout(spawnGem, waitTime);
+
+  // 9. はじめてボーナス中なら、進み具合を更新して、目標に届いたら終わり
+  if (welcomeRushActive) {
+    updateWelcomeBanner();
+    if (totalGems >= WELCOME_GOAL) {
+      endWelcomeRush();
+    }
+  }
+}
+
+
+/* ---------- はじめてボーナス ---------- */
+// はじめて遊ぶ人へのお楽しみ。宝石が画面いっぱいに出続けて、
+// 50個(WELCOME_GOAL)あつめるまで止まらない!
+
+function startWelcomeRush() {
+  if (welcomeRushActive) {
+    return; // もう始まっていたら何もしない
+  }
+  welcomeRushActive = true;
+  mainArea.classList.add("fever"); // フィーバーと同じ金色の光を使い回す
+
+  // 進み具合のバナーを画面の上に出す
+  const banner = document.createElement("div");
+  banner.className = "fever-banner";
+  banner.id = "welcome-banner";
+  mainArea.appendChild(banner);
+  updateWelcomeBanner();
+
+  showToast("ようこそ! まずは宝石を" + WELCOME_GOAL + "個あつめよう!");
+
+  // まず画面いっぱいに宝石を出す!(0.08秒ずつずらして12個)
+  for (let i = 0; i < FEVER_MAX_GEMS; i++) {
+    setTimeout(spawnGem, i * 80);
+  }
+
+  // その後も 0.3秒ごとに宝石を出し続ける(絶え間なく!)
+  welcomeSpawnTimer = setInterval(spawnGem, 300);
+}
+
+// バナーの「いま何個/50個」の表示を新しくする
+function updateWelcomeBanner() {
+  const banner = document.getElementById("welcome-banner");
+  if (banner) {
+    banner.textContent = "✨ はじめてボーナス " + totalGems + " / " + WELCOME_GOAL + " 個 ✨";
+  }
+}
+
+// 50個あつめたら、はじめてボーナス終了
+function endWelcomeRush() {
+  welcomeRushActive = false;
+  clearInterval(welcomeSpawnTimer); // 宝石を出し続けるのをやめる
+  if (feverSecondsLeft <= 0) {
+    mainArea.classList.remove("fever"); // フィーバー中でなければ光を消す
+  }
+  const banner = document.getElementById("welcome-banner");
+  if (banner) {
+    banner.remove();
+  }
+  playFeverSound(); // おめでとうのファンファーレ
+  showToast(WELCOME_GOAL + "個たっせい! ここからが本番!");
 }
 
 
@@ -528,9 +596,9 @@ function scheduleChest() {
 
 // 宝箱を1個、ランダムな場所に出現させる
 function spawnChest() {
-  // ストーリー画面などで宝石エリアが隠れているときや、
-  // すでにフィーバー中のときは、少し待ってからもう一度チャレンジ
-  if (mainArea.hidden || feverSecondsLeft > 0) {
+  // ストーリー画面などで宝石エリアが隠れているとき、フィーバー中、
+  // はじめてボーナス中は、少し待ってからもう一度チャレンジ
+  if (mainArea.hidden || feverSecondsLeft > 0 || welcomeRushActive) {
     setTimeout(spawnChest, 5000);
     return;
   }
@@ -616,7 +684,9 @@ function endFever() {
   feverSecondsLeft = 0;
   clearInterval(feverSpawnTimer); // 宝石を出し続けるのをやめる
   clearInterval(feverCountTimer); // カウントダウンをやめる
-  mainArea.classList.remove("fever");
+  if (!welcomeRushActive) {
+    mainArea.classList.remove("fever"); // はじめてボーナス中でなければ光を消す
+  }
   const banner = document.getElementById("fever-banner");
   if (banner) {
     banner.remove();
@@ -878,9 +948,9 @@ function doReset() {
     // 消せなくてもそのまま進む
   }
 
-  // 2. ゲームの変数をぜんぶ最初の状態に戻す(プレゼントの宝石50個も復活)
-  gemCount = STARTING_GEMS;
-  totalGems = STARTING_GEMS;
+  // 2. ゲームの変数をぜんぶ最初の状態に戻す
+  gemCount = 0;
+  totalGems = 0;
   tapCount = 0;
   spentGems = 0;
   upgrades.shape.level = 1;
@@ -903,12 +973,11 @@ function doReset() {
   confirmOverlay.hidden = true;
   settingsOverlay.hidden = true;
 
-  // 5. あつめる画面に戻して、最初の宝石たちをまた出現させて、お知らせを出す
+  // 5. あつめる画面に戻して、はじめてボーナスからやり直し!
   showScreen("atsumeru");
-  setTimeout(spawnGem, 300);
-  setTimeout(spawnGem, 600);
-  setTimeout(spawnGem, 900);
   showToast("データをリセットしました");
+  startWelcomeRush();     // すでにボーナス中なら何も起きない
+  updateWelcomeBanner();  // バナーの数字を 0 / 50 に戻す
 }
 
 
@@ -971,3 +1040,9 @@ setTimeout(spawnGem, 900);
 
 // 宝箱の出現も予約しておく(2〜5分後のどこかで出る)
 scheduleChest();
+
+// まだ50個あつめていない人(=はじめての人)は、はじめてボーナスで開始!
+// とちゅうでページを閉じても、開き直せば続きから再開する
+if (totalGems < WELCOME_GOAL) {
+  startWelcomeRush();
+}
