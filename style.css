@@ -165,6 +165,62 @@ body {
   to   { opacity: 0; translate: 0 -60px; }
 }
 
+/* ---------- 宝箱とフィーバータイム ---------- */
+
+/* ランダムに出現する宝箱(クリックするとフィーバータイム!) */
+.chest {
+  position: absolute;
+  z-index: 5; /* 宝石より手前に表示する */
+  background: none;
+  border: none;
+  padding: 8px; /* 少し余白を付けてタップしやすくする */
+  font-size: 64px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  /* 金色に光らせて、プルプルゆらして目立たせる */
+  filter: drop-shadow(0 0 18px rgba(255, 215, 100, 0.9));
+  animation:
+    pop-in 0.3s ease-out,
+    chest-shake 0.8s ease-in-out infinite;
+}
+
+/* 左右にプルプルゆれるアニメーション */
+@keyframes chest-shake {
+  0%   { rotate: -8deg; }
+  50%  { rotate: 8deg; }
+  100% { rotate: -8deg; }
+}
+
+/* フィーバー中のメインエリア(内側が金色に脈打つように光る) */
+.main-area.fever {
+  animation: fever-glow 1s ease-in-out infinite;
+}
+
+@keyframes fever-glow {
+  0%   { box-shadow: inset 0 0 40px rgba(255, 200, 80, 0.35); }
+  50%  { box-shadow: inset 0 0 90px rgba(255, 220, 120, 0.65); }
+  100% { box-shadow: inset 0 0 40px rgba(255, 200, 80, 0.35); }
+}
+
+/* フィーバーの残り時間バナー(エリアの上の真ん中) */
+.fever-banner {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  translate: -50% 0; /* 自分の幅の半分だけ左にずらして中央に */
+  z-index: 6;
+  padding: 6px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #3a2a10;
+  background: linear-gradient(180deg, #ffe9a8 0%, #e8b860 100%);
+  border: 2px solid #a08050;
+  border-radius: 16px;
+  white-space: nowrap;
+  pointer-events: none; /* タップの邪魔をしないように */
+}
+
 /* ---------- ③ ステータスパネル ---------- */
 .status-panel {
   display: flex;

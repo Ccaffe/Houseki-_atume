@@ -101,8 +101,19 @@ let spentGems = 0;    // 強化につかった宝石の数(統計用)
 let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だけ読める)
 
 // 「const」は「変わらない値」を作る書き方
-const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数
+const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数(ふだん)
 const MAX_LEVEL = 10; // 強化レベルの上限
+
+// ---- 宝箱とフィーバータイムの設定 ----
+const FEVER_SECONDS = 30;    // フィーバータイムの長さ(秒)
+const FEVER_MAX_GEMS = 12;   // フィーバー中は宝石がこの数まで画面に出る
+const CHEST_WAIT_MIN = 120;  // 次の宝箱が出るまでの最短(秒)= 2分
+const CHEST_WAIT_MAX = 300;  // 最長(秒)= 5分
+const CHEST_LIFETIME = 20;   // 宝箱を開けないと消えるまでの時間(秒)
+
+let feverSecondsLeft = 0;    // フィーバーの残り秒数(0なら通常モード)
+let feverSpawnTimer = null;  // フィーバー中に宝石を出し続けるタイマー
+let feverCountTimer = null;  // 残り時間をカウントダウンするタイマー
 
 // 保存データのバージョン。ゲームのルールを大きく変えたときに
 // この数字を上げると、みんなの古い保存データが1回だけ自動リセットされる
@@ -326,9 +337,11 @@ function spawnGem() {
     return;
   }
 
-  // すでに画面に MAX_GEMS 個あったら、これ以上は出さない
+  // すでに画面に上限の数まで宝石があったら、これ以上は出さない。
+  // 上限はふだん MAX_GEMS(3個)、フィーバー中は FEVER_MAX_GEMS(12個)!
+  const maxGems = feverSecondsLeft > 0 ? FEVER_MAX_GEMS : MAX_GEMS;
   const gemsOnScreen = mainArea.querySelectorAll(".gem").length;
-  if (gemsOnScreen >= MAX_GEMS) {
+  if (gemsOnScreen >= maxGems) {
     return; // 「return」= ここで関数を終わりにする
   }
 
@@ -452,9 +465,134 @@ function collectGem(gem) {
     gem.remove();
   }, 400);
 
-  // 8. 少し待ってから(0.5〜1.5秒後)、新しい宝石を出現させる
-  const waitTime = 500 + Math.random() * 1000;
+  // 8. 少し待ってから、新しい宝石を出現させる。
+  //    ふだんは0.5〜1.5秒後、フィーバー中はすぐ(0.15〜0.45秒後)!
+  let waitTime = 500 + Math.random() * 1000;
+  if (feverSecondsLeft > 0) {
+    waitTime = 150 + Math.random() * 300;
+  }
   setTimeout(spawnGem, waitTime);
+}
+
+
+/* ---------- 宝箱とフィーバータイム ---------- */
+
+// 次の宝箱の出現を予約する(2〜5分後のどこかでランダムに出る)
+function scheduleChest() {
+  const waitSeconds = CHEST_WAIT_MIN + Math.random() * (CHEST_WAIT_MAX - CHEST_WAIT_MIN);
+  setTimeout(spawnChest, waitSeconds * 1000); // ×1000 で秒→ミリ秒にする
+}
+
+// 宝箱を1個、ランダムな場所に出現させる
+function spawnChest() {
+  // ストーリー画面などで宝石エリアが隠れているときや、
+  // すでにフィーバー中のときは、少し待ってからもう一度チャレンジ
+  if (mainArea.hidden || feverSecondsLeft > 0) {
+    setTimeout(spawnChest, 5000);
+    return;
+  }
+
+  const chest = document.createElement("button");
+  chest.className = "chest";
+  chest.textContent = "🎁"; // 宝箱の絵。好きな絵文字に変えてもOK
+  chest.setAttribute("aria-label", "宝箱をひらく");
+
+  // 出現する場所をランダムに決める(はみ出さない範囲で)
+  const x = 10 + Math.random() * Math.max(0, mainArea.clientWidth - 80);
+  const y = 10 + Math.random() * Math.max(0, mainArea.clientHeight - 80);
+  chest.style.left = x + "px";
+  chest.style.top = y + "px";
+
+  // 開けたかどうかのメモ(2回開けないように)
+  let opened = false;
+
+  chest.addEventListener("click", function () {
+    if (opened) {
+      return;
+    }
+    opened = true;
+    chest.remove();
+    startFever(); // 宝箱を開けるとフィーバータイム!
+  });
+
+  mainArea.appendChild(chest);
+
+  // 20秒たっても開けられなかったら、宝箱は消えて、また今度
+  setTimeout(function () {
+    if (!opened) {
+      opened = true; // もう開けられないようにする
+      chest.remove();
+      scheduleChest();
+    }
+  }, CHEST_LIFETIME * 1000);
+}
+
+// フィーバータイム開始!
+function startFever() {
+  feverSecondsLeft = FEVER_SECONDS;
+  mainArea.classList.add("fever"); // 画面が金色に光る(style.css)
+  playFeverSound();
+  showToast("フィーバータイム! " + FEVER_SECONDS + "秒間 宝石ざくざく!");
+
+  // 残り時間のバナーを画面の上に出す
+  const banner = document.createElement("div");
+  banner.className = "fever-banner";
+  banner.id = "fever-banner";
+  mainArea.appendChild(banner);
+  updateFeverBanner();
+
+  // まず画面いっぱいに宝石を出す!(0.08秒ずつずらして12個)
+  for (let i = 0; i < FEVER_MAX_GEMS; i++) {
+    setTimeout(spawnGem, i * 80);
+  }
+
+  // その後も 0.4秒ごとに宝石を出し続ける
+  feverSpawnTimer = setInterval(spawnGem, 400);
+
+  // 1秒ごとに残り時間を1減らして、0になったら終了
+  feverCountTimer = setInterval(function () {
+    feverSecondsLeft -= 1;
+    updateFeverBanner();
+    if (feverSecondsLeft <= 0) {
+      endFever();
+    }
+  }, 1000);
+}
+
+// バナーの残り秒数の表示を新しくする
+function updateFeverBanner() {
+  const banner = document.getElementById("fever-banner");
+  if (banner) {
+    banner.textContent = "⭐ フィーバータイム 残り " + feverSecondsLeft + " 秒 ⭐";
+  }
+}
+
+// フィーバータイム終了
+function endFever() {
+  feverSecondsLeft = 0;
+  clearInterval(feverSpawnTimer); // 宝石を出し続けるのをやめる
+  clearInterval(feverCountTimer); // カウントダウンをやめる
+  mainArea.classList.remove("fever");
+  const banner = document.getElementById("fever-banner");
+  if (banner) {
+    banner.remove();
+  }
+  showToast("フィーバータイム終了!");
+  scheduleChest(); // また数分後に宝箱が出る
+}
+
+// フィーバー開始の「テッテレー♪」(音をだんだん高く重ねる)
+function playFeverSound() {
+  try {
+    prepareAudio();
+    const now = audioContext.currentTime;
+    playNote(523, now);         // ド
+    playNote(659, now + 0.09);  // ミ
+    playNote(784, now + 0.18);  // ソ
+    playNote(1047, now + 0.27); // 高いド
+  } catch (e) {
+    // 音が出せない環境でも続ける
+  }
 }
 
 
@@ -699,7 +837,10 @@ function doReset() {
   upgrades.color.level = 1;
   unlockedStories = 1;
 
-  // 3. 画面に残っている宝石をぜんぶ消す
+  // 3. フィーバー中だったら終わらせて、画面に残っている宝石をぜんぶ消す
+  if (feverSecondsLeft > 0) {
+    endFever();
+  }
   const gems = mainArea.querySelectorAll(".gem");
   gems.forEach(function (gem) {
     gem.remove();
@@ -772,3 +913,6 @@ showScreen("atsumeru"); // 最初は「あつめる」画面から
 setTimeout(spawnGem, 300);
 setTimeout(spawnGem, 600);
 setTimeout(spawnGem, 900);
+
+// 宝箱の出現も予約しておく(2〜5分後のどこかで出る)
+scheduleChest();
