@@ -255,6 +255,37 @@
     </div>
 
     <!-- ===============================
+         ⑥-C チュートリアル画面
+         はじめて遊ぶときに1回だけ出る「あそびかた」の説明
+         =============================== -->
+    <div class="overlay" id="tutorial-overlay" hidden>
+      <div class="panel">
+        <h2 class="panel-title">✦ あそびかた ✦</h2>
+
+        <div class="tutorial-list">
+          <div class="tutorial-row">
+            <span class="tutorial-icon">💎</span>
+            <span>タップして、どんどん宝石をあつめよう!</span>
+          </div>
+          <div class="tutorial-row">
+            <span class="tutorial-icon">⬆️</span>
+            <span>宝石をあつめると「Lv UP」でレベルを上げられるよ。新しい形や色の宝石がふえていく!</span>
+          </div>
+          <div class="tutorial-row">
+            <span class="tutorial-icon">🎁</span>
+            <span>ときどき出てくる宝箱を開けると、フィーバータイム!</span>
+          </div>
+          <div class="tutorial-row">
+            <span class="tutorial-icon">✨</span>
+            <span>まずは「はじめてボーナス」で50個あつめてみよう!</span>
+          </div>
+        </div>
+
+        <button class="close-button" id="tutorial-close">あそぶ!</button>
+      </div>
+    </div>
+
+    <!-- ===============================
          ⑦ リセットの確認画面
          「データをリセット」を押すと出てくる。
          ブラウザ標準の confirm() は使えない環境があるので、自作している

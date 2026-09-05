@@ -99,6 +99,7 @@ let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減
 let tapCount = 0;     // 宝石をタップした回数(統計用)
 let spentGems = 0;    // 強化につかった宝石の数(統計用)
 let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だけ読める)
+let tutorialSeen = false; // チュートリアルをもう見たかどうか
 
 // 「const」は「変わらない値」を作る書き方
 const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数(ふだん)
@@ -246,6 +247,7 @@ function saveGame() {
       tapCount: tapCount,
       spentGems: spentGems,
       unlockedStories: unlockedStories,
+      tutorialSeen: tutorialSeen,
       sizeLevel: upgrades.size.level,
       shapeLevel: upgrades.shape.level,
       colorLevel: upgrades.color.level,
@@ -277,6 +279,7 @@ function loadGame() {
     tapCount = data.tapCount || 0;
     spentGems = data.spentGems || 0;
     unlockedStories = data.unlockedStories || 1;
+    tutorialSeen = data.tutorialSeen || false;
     upgrades.size.level = data.sizeLevel || 1;
     upgrades.shape.level = data.shapeLevel || 1;
     upgrades.color.level = data.colorLevel || 1;
@@ -958,6 +961,7 @@ function doReset() {
   upgrades.size.level = 1;
   upgrades.speed.level = 1;
   unlockedStories = 1;
+  tutorialSeen = false; // チュートリアルもまた見られるようにする
 
   // 3. フィーバー中だったら終わらせて、画面に残っている宝石をぜんぶ消す
   if (feverSecondsLeft > 0) {
@@ -978,6 +982,7 @@ function doReset() {
   showToast("データをリセットしました");
   startWelcomeRush();     // すでにボーナス中なら何も起きない
   updateWelcomeBanner();  // バナーの数字を 0 / 50 に戻す
+  document.getElementById("tutorial-overlay").hidden = false; // あそびかたも再表示
 }
 
 
@@ -1014,6 +1019,14 @@ document.getElementById("story-close").addEventListener("click", function () {
   storyOverlay.hidden = true;
 });
 
+// チュートリアルの「あそぶ!」ボタン。
+// 閉じたことを保存して、次からは表示しない
+document.getElementById("tutorial-close").addEventListener("click", function () {
+  document.getElementById("tutorial-overlay").hidden = true;
+  tutorialSeen = true;
+  saveGame();
+});
+
 // せってい関係
 document.getElementById("menu-settings").addEventListener("click", openSettings);
 document.getElementById("settings-close").addEventListener("click", function () {
@@ -1045,4 +1058,10 @@ scheduleChest();
 // とちゅうでページを閉じても、開き直せば続きから再開する
 if (totalGems < WELCOME_GOAL) {
   startWelcomeRush();
+}
+
+// まだチュートリアルを見ていない人には、あそびかたのポップアップを出す
+// (うしろでは、はじめてボーナスの宝石がどんどんたまっていく)
+if (!tutorialSeen) {
+  document.getElementById("tutorial-overlay").hidden = false;
 }

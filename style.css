@@ -641,6 +641,26 @@ button.story-card:active {
   font-size: 15px;
 }
 
+/* チュートリアルの説明の1行(絵文字+文章) */
+.tutorial-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.tutorial-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tutorial-icon {
+  font-size: 22px;
+  flex-shrink: 0; /* 絵文字はつぶさない */
+}
+
 /* リセット確認画面の説明文 */
 .confirm-text {
   font-size: 15px;
