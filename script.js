@@ -148,19 +148,31 @@ let tutorialStep = null;     // いま表示中のセリフの名前(何も出�
 let tutorialTapCount = 0;    // 「タップすると〜」のセリフ中に宝石を取った数
 
 // 「const」は「変わらない値」を作る書き方
-const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数(ふだん)
 const MAX_LEVEL = 10; // 強化レベルの上限
+
+// ---- 宝石の湧き方(増え方・消え方)の設定 ----
+// 宝石は一定の間隔でどんどん湧いてたまっていき、
+// 古いものから順に、点滅してから消えていく。
+// 「気持ちよく一気に集められる」+「消えるまえに拾いたくなる」バランス!
+const GEM_CAP = 100;           // 画面に出る宝石の上限(画面いっぱい)
+const GEM_RESUME = 80;         // 上限に達したあと、この数まで減ると湧きが再開する
+const SPAWN_INTERVAL = 900;    // 何ミリ秒ごとに1個湧くか(ふだん)
+const SPAWN_SPEED_BONUS = 60;  // 「秒数」レベル1つごとに、湧きが何ミリ秒早くなるか
+const RUSH_INTERVAL = 150;     // はじめてボーナス/エレガントタイム中の湧き間隔
+const RUSH_BURST = 12;         // ボーナスなどが始まった瞬間に一気に出す数
+const DECAY_INTERVAL = 3500;   // 何ミリ秒ごとに、いちばん古い宝石が消え始めるか
+const DECAY_MIN = 6;           // 画面がこの数以下なら消えない(集めている人の邪魔をしない)
+const DECAY_FADE_TIME = 1500;  // 消えるまでの点滅時間(この間にタップすれば救出できる!)
+let spawnPaused = false;       // 上限に達して湧きがお休み中かどうか
 
 // ---- 宝箱とフィーバータイムの設定 ----
 const FEVER_SECONDS = 30;    // フィーバータイムの長さ(秒)
-const FEVER_MAX_GEMS = 12;   // フィーバー中は宝石がこの数まで画面に出る
 const CHEST_WAIT_MIN = 120;  // 次の宝箱が出るまでの最短(秒)= 2分
 const CHEST_WAIT_MAX = 300;  // 最長(秒)= 5分
 const CHEST_LIFETIME = 20;   // 宝箱を開けないと消えるまでの時間(秒)
 const CHEST_UNLOCK_LEVEL = 5; // 宝箱が解禁されるユーザーレベル
 
 let feverSecondsLeft = 0;    // フィーバーの残り秒数(0なら通常モード)
-let feverSpawnTimer = null;  // フィーバー中に宝石を出し続けるタイマー
 let feverCountTimer = null;  // 残り時間をカウントダウンするタイマー
 
 // ---- はじめてボーナスの設定 ----
@@ -168,7 +180,6 @@ let feverCountTimer = null;  // 残り時間をカウントダウンするタイ
 // この数(50個)をあつめるまで止まらない!楽しいスタート用
 const WELCOME_GOAL = 50;
 let welcomeRushActive = false;  // はじめてボーナス中かどうか
-let welcomeSpawnTimer = null;   // ボーナス中に宝石を出し続けるタイマー
 
 // 保存データのバージョン。ゲームのルールを大きく変えたときに
 // この数字を上げると、みんなの古い保存データが1回だけ自動リセットされる
@@ -180,12 +191,13 @@ const upgrades = {
   shape: { name: "形",     level: 1 }, // 宝石の形が変わる+獲得数アップ
   color: { name: "色",     level: 1 }, // 宝石の色が増える+獲得数アップ
   size:  { name: "大きさ", level: 1 }, // 宝石が大きくなる+獲得数アップ
-  speed: { name: "秒数",   level: 1 }, // 宝石が出てくるまでの時間が短くなる
+  speed: { name: "秒数",   level: 1 }, // 宝石が湧いてくる間隔が短くなる
+  range: { name: "範囲",   level: 1 }, // タップが当たる範囲が広くなる
 };
 
 // 強化が解放される順番。
 // 前の強化を Lv MAX まで上げると、次の強化が解放される!
-const UPGRADE_ORDER = ["shape", "color", "size", "speed"];
+const UPGRADE_ORDER = ["shape", "color", "size", "speed", "range"];
 
 // その強化がもう解放されているかどうかを調べる関数。
 // true(はい)か false(いいえ)が返ってくる
@@ -262,8 +274,8 @@ function updateOneUpgrade(type) {
 // ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
 function getUserLevel() {
   return (
-    upgrades.shape.level + upgrades.color.level +
-    upgrades.size.level + upgrades.speed.level - 3
+    upgrades.shape.level + upgrades.color.level + upgrades.size.level +
+    upgrades.speed.level + upgrades.range.level - 4
   );
 }
 
@@ -278,6 +290,7 @@ function updateDisplay() {
   updateOneUpgrade("color");
   updateOneUpgrade("size");
   updateOneUpgrade("speed");
+  updateOneUpgrade("range");
 }
 
 
@@ -303,6 +316,7 @@ function saveGame() {
       shapeLevel: upgrades.shape.level,
       colorLevel: upgrades.color.level,
       speedLevel: upgrades.speed.level,
+      rangeLevel: upgrades.range.level,
     };
     localStorage.setItem("housekiSave", JSON.stringify(data));
   } catch (e) {
@@ -336,6 +350,7 @@ function loadGame() {
     upgrades.shape.level = data.shapeLevel || 1;
     upgrades.color.level = data.colorLevel || 1;
     upgrades.speed.level = data.speedLevel || 1;
+    upgrades.range.level = data.rangeLevel || 1;
   } catch (e) {
     // 読み込めない環境では最初からスタート
   }
@@ -422,26 +437,72 @@ function showPlusOne(x, y, amount) {
 }
 
 
-/* ---------- 宝石を1個、ランダムな場所に出現させる ---------- */
+/* ---------- 宝石の湧きと消滅のループ ---------- */
 
-function spawnGem() {
-  // ストーリー画面などを見ていて宝石エリアが隠れているときは、
-  // 少し待ってからもう一度チャレンジする
-  if (mainArea.hidden) {
-    setTimeout(spawnGem, 1000);
+// 宝石をずっと湧かせ続けるループ。
+// 一定の間隔(SPAWN_INTERVAL)で spawnGem を呼び、自分で次の予約をする
+function spawnLoop() {
+  // 湧く間隔を計算する。「秒数」レベル1つごとに少し早くなり、
+  // はじめてボーナス中とエレガントタイム中はいつでも爆速!
+  let interval = SPAWN_INTERVAL - (upgrades.speed.level - 1) * SPAWN_SPEED_BONUS;
+  if (feverSecondsLeft > 0 || welcomeRushActive) {
+    interval = RUSH_INTERVAL;
+  }
+  setTimeout(spawnLoop, interval); // 次の湧きを予約してから…
+  spawnGem();                      // …今回の1個を湧かせる
+}
+
+// いちばん古い宝石が、ときどき点滅して消えていくループ。
+// 「消えるまえに拾わなきゃ、もったいない!」のドキドキを作る
+function decayLoop() {
+  setTimeout(decayLoop, DECAY_INTERVAL); // 次の消滅も予約しておく
+
+  // 画面が隠れているときと、お楽しみタイム中は消えない
+  if (mainArea.hidden || feverSecondsLeft > 0 || welcomeRushActive) {
     return;
   }
 
-  // すでに画面に上限の数まで宝石があったら、これ以上は出さない。
-  // 上限はふだん MAX_GEMS(3個)。
-  // フィーバー中とはじめてボーナス中は FEVER_MAX_GEMS(12個)!
-  // 「:not(.collected)」= 消えるアニメーション中の宝石は数に入れない
-  // (数えてしまうと、秒数レベルが高いとき新しい宝石が出そこねることがある)
-  const isRushTime = feverSecondsLeft > 0 || welcomeRushActive;
-  const maxGems = isRushTime ? FEVER_MAX_GEMS : MAX_GEMS;
-  const gemsOnScreen = mainArea.querySelectorAll(".gem:not(.collected)").length;
-  if (gemsOnScreen >= maxGems) {
+  // 消えかけ・収集済みをのぞいた宝石たち。先頭がいちばん古い
+  const gems = mainArea.querySelectorAll(".gem:not(.collected):not(.expiring)");
+  if (gems.length <= DECAY_MIN) {
+    return; // 少ないときは消さない(集めている人の邪魔をしない)
+  }
+
+  // いちばん古い宝石を点滅させる。点滅中もタップすれば救出できる!
+  const oldest = gems[0];
+  oldest.classList.add("expiring");
+  setTimeout(function () {
+    // 点滅が終わってもまだ拾われていなかったら、静かに消える
+    if (oldest.isConnected && !oldest.classList.contains("collected")) {
+      oldest.remove();
+    }
+  }, DECAY_FADE_TIME);
+}
+
+
+/* ---------- 宝石を1個、ランダムな場所に出現させる ---------- */
+
+function spawnGem() {
+  // ストーリー画面などを見ていて宝石エリアが隠れているときは湧かない
+  // (ループは動き続けているので、戻ってくればまた湧き始める)
+  if (mainArea.hidden) {
     return; // 「return」= ここで関数を終わりにする
+  }
+
+  // 画面の宝石の数をかぞえる(収集アニメーション中のものはのぞく)
+  const gemsOnScreen = mainArea.querySelectorAll(".gem:not(.collected)").length;
+
+  // 上限(GEM_CAP)まで埋まったら湧きをお休みして、
+  // GEM_RESUME まで減ったらまた湧き始める
+  if (spawnPaused) {
+    if (gemsOnScreen <= GEM_RESUME) {
+      spawnPaused = false; // 減ってきたので湧き再開!
+    } else {
+      return;
+    }
+  } else if (gemsOnScreen >= GEM_CAP) {
+    spawnPaused = true; // 画面いっぱい!しばらくお休み
+    return;
   }
 
   // ★ この宝石のレベルを抽選する ★
@@ -486,7 +547,13 @@ function spawnGem() {
   // Math.random() は「0以上1未満のランダムな数」を出してくれる
   const growLevel = Math.min(gemSizeLevel - 1, 6);
   const size = 60 + Math.random() * 50 + growLevel * 5;
-  gem.style.width = size + "px";
+
+  // 「範囲」レベルで、タップが当たる見えない余白(padding)を広げる。
+  // 1レベルごとに、まわり +3ピクセルずつ当たりやすくなる
+  const hitPadding = (upgrades.range.level - 1) * 3;
+  gem.style.padding = hitPadding + "px";
+  // 幅は「宝石の絵+左右の余白」ぶん(絵の大きさは変わらない)
+  gem.style.width = (size + hitPadding * 2) + "px";
 
   // 出現する場所をランダムに決める。
   // 宝石はエリアの端から「半分まで」はみ出してもOKというルール。
@@ -567,18 +634,10 @@ function collectGem(gem) {
     gem.remove();
   }, 400);
 
-  // 8. 少し待ってから、新しい宝石を出現させる。
-  //    ふだんは0.5〜1.5秒後。「秒数」レベル1つにつき0.1秒ずつ早くなる
-  //    (早くなりすぎないよう、最短は0.1秒)。
-  //    フィーバー中とはじめてボーナス中はいつでも爆速!
-  let waitTime = 500 + Math.random() * 1000;
-  waitTime = Math.max(100, waitTime - (upgrades.speed.level - 1) * 100);
-  if (feverSecondsLeft > 0 || welcomeRushActive) {
-    waitTime = 150 + Math.random() * 300;
-  }
-  setTimeout(spawnGem, waitTime);
+  // ※ 新しい宝石はここでは出さない。
+  //    spawnLoop が一定の間隔でずっと湧かせ続けてくれている
 
-  // 9. はじめてボーナス中なら、進み具合を更新して、目標に届いたら終わり
+  // 8. はじめてボーナス中なら、進み具合を更新して、目標に届いたら終わり
   if (welcomeRushActive) {
     updateWelcomeBanner();
     if (totalGems >= WELCOME_GOAL) {
@@ -586,8 +645,8 @@ function collectGem(gem) {
     }
   }
 
-  // 10. 「タップすると宝石が集められるわ。」のセリフ中に
-  //     宝石を3個タップしたら、次のセリフへ進む
+  // 9. 「タップすると宝石が集められるわ。」のセリフ中に
+  //    宝石を3個タップしたら、次のセリフへ進む
   if (tutorialStep === "tap") {
     tutorialTapCount += 1;
     if (tutorialTapCount >= 3) {
@@ -743,13 +802,11 @@ function startWelcomeRush() {
   mainArea.appendChild(banner);
   updateWelcomeBanner();
 
-  // まず画面いっぱいに宝石を出す!(0.08秒ずつずらして12個)
-  for (let i = 0; i < FEVER_MAX_GEMS; i++) {
+  // まず勢いよく宝石を出す!(0.08秒ずつずらして12個)。
+  // その後は spawnLoop が RUSH_INTERVAL の爆速で湧かせ続けてくれる
+  for (let i = 0; i < RUSH_BURST; i++) {
     setTimeout(spawnGem, i * 80);
   }
-
-  // その後も 0.3秒ごとに宝石を出し続ける(絶え間なく!)
-  welcomeSpawnTimer = setInterval(spawnGem, 300);
 }
 
 // バナーの「いま何個/50個」の表示を新しくする
@@ -762,8 +819,7 @@ function updateWelcomeBanner() {
 
 // 50個あつめたら、はじめてボーナス終了
 function endWelcomeRush() {
-  welcomeRushActive = false;
-  clearInterval(welcomeSpawnTimer); // 宝石を出し続けるのをやめる
+  welcomeRushActive = false; // spawnLoop の湧きもふつうの速さに戻る
   if (feverSecondsLeft <= 0) {
     mainArea.classList.remove("fever"); // フィーバー中でなければ光を消す
   }
@@ -884,13 +940,11 @@ function startFever() {
   mainArea.appendChild(banner);
   updateFeverBanner();
 
-  // まず画面いっぱいに宝石を出す!(0.08秒ずつずらして12個)
-  for (let i = 0; i < FEVER_MAX_GEMS; i++) {
+  // まず勢いよく宝石を出す!(0.08秒ずつずらして12個)。
+  // その後は spawnLoop が RUSH_INTERVAL の爆速で湧かせ続けてくれる
+  for (let i = 0; i < RUSH_BURST; i++) {
     setTimeout(spawnGem, i * 80);
   }
-
-  // その後も 0.4秒ごとに宝石を出し続ける
-  feverSpawnTimer = setInterval(spawnGem, 400);
 
   // 1秒ごとに残り時間を1減らして、0になったら終了
   feverCountTimer = setInterval(function () {
@@ -912,8 +966,7 @@ function updateFeverBanner() {
 
 // フィーバータイム終了
 function endFever() {
-  feverSecondsLeft = 0;
-  clearInterval(feverSpawnTimer); // 宝石を出し続けるのをやめる
+  feverSecondsLeft = 0; // spawnLoop の湧きもふつうの速さに戻る
   clearInterval(feverCountTimer); // カウントダウンをやめる
   if (!welcomeRushActive) {
     mainArea.classList.remove("fever"); // はじめてボーナス中でなければ光を消す
@@ -1199,7 +1252,9 @@ function doReset() {
   upgrades.color.level = 1;
   upgrades.size.level = 1;
   upgrades.speed.level = 1;
+  upgrades.range.level = 1;
   unlockedStories = 1;
+  spawnPaused = false;    // 湧きのお休み状態も解除する
   tutorialSeen = false;   // チュートリアルもまた見られるようにする
   firstChestDone = false; // はじめての宝箱もまた出るようにする
 
@@ -1242,6 +1297,9 @@ document.getElementById("lvup-color").addEventListener("click", function () {
 document.getElementById("lvup-speed").addEventListener("click", function () {
   buyUpgrade("speed");
 });
+document.getElementById("lvup-range").addEventListener("click", function () {
+  buyUpgrade("range");
+});
 
 // メニューの画面切り替え(あつめる ⇄ ストーリー)
 document.getElementById("menu-atsumeru").addEventListener("click", function () {
@@ -1279,10 +1337,9 @@ loadGame();
 updateDisplay();
 showScreen("atsumeru"); // 最初は「あつめる」画面から
 
-// 最初の宝石たちを、0.3秒ずつずらして3個出現させる
-setTimeout(spawnGem, 300);
-setTimeout(spawnGem, 600);
-setTimeout(spawnGem, 900);
+// 宝石が湧き続けるループと、古い宝石が消えていくループを動かし始める
+spawnLoop();
+decayLoop();
 
 // まだ50個あつめていない人(=はじめての人)は、はじめてボーナスで開始!
 // とちゅうでページを閉じても、開き直せば続きから再開する

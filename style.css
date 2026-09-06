@@ -143,6 +143,20 @@ body {
     float 4s ease-in-out infinite;
 }
 
+/* もうすぐ消えてしまう宝石(decayLoop がこのクラスを付ける)。
+   点滅してから消えていく。点滅中もタップすれば救出できる! */
+.gem.expiring {
+  animation: expire-blink 1.5s ease-in forwards;
+}
+
+@keyframes expire-blink {
+  0%   { opacity: 1; }
+  25%  { opacity: 0.25; }
+  50%  { opacity: 0.9; }
+  75%  { opacity: 0.2; }
+  100% { opacity: 0; transform: scale(0.6); }
+}
+
 /* 集めた瞬間の宝石(script.js がこのクラスを付ける)。
    キラッと大きくなりながら消えていく。
    ※ この指定は has-image より「あと」に書くこと!
