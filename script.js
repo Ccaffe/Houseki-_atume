@@ -115,7 +115,7 @@ const tutorialLines = {
 なら、「Lv UP」で
 レベルを上げられるわ。`,
 
-  // OKを押すか、形のレベルを上げると次へ進む
+  // 形のレベルを実際に上げると次へ進む(このセリフにOKボタンは出ない)
   shapeTry: `まずはこの、形の
 レベルを上げてみて頂戴。
 最初とはいえ、指示ばかりで
@@ -671,7 +671,9 @@ function showTutorialStep(step) {
     tutorialBlocker.hidden = false;
     if (step === "shapeTry") {
       // このときだけ、形の Lv UP ボタンは特別に押せる!
+      // そして実際にレベルを上げるまで進めない(OKボタンは出さない)
       setTutorialAllow(document.getElementById("lvup-shape"));
+      tutorialOkButton.hidden = true;
     }
   } else if (step === "chestFound") {
     // 宝箱の左に出して、宝箱を指す。宝箱をタップするまで進めない(OKも出さない)
@@ -714,8 +716,7 @@ tutorialOkButton.addEventListener("click", function () {
     hideTutorial(); // 50個あつめたら、また声をかけてくれる
   } else if (tutorialStep === "lvupIntro") {
     showTutorialStep("shapeTry");
-  } else if (tutorialStep === "shapeTry") {
-    showTutorialStep("praise");
+    // ※ shapeTry にOKボタンはない。形のLv UPボタンを押すと進む
   } else if (tutorialStep === "praise") {
     finishTutorial(); // これでチュートリアルはおしまい!
   } else if (tutorialStep === "chestThanks") {
