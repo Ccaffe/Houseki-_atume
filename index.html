@@ -7,6 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- ブラウザのタブに表示されるタイトル -->
   <title>宝石あつめ</title>
+  <!-- 上品で高級感のある明朝体フォント「しっぽり明朝」を
+       Google Fonts というサービスから読み込む -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&display=swap">
   <!-- 見た目(デザイン)のファイルを読み込む -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -255,34 +258,15 @@
     </div>
 
     <!-- ===============================
-         ⑥-C チュートリアル画面
-         はじめて遊ぶときに1回だけ出る「あそびかた」の説明
+         ⑥-C チュートリアルの吹き出し
+         お屋敷の主(おじょうさま)のセリフが出てくる。
+         セリフの中身は script.js の「セリフ編集コーナー」にあるよ。
+         blocker は「セリフ中は他の場所を触れなくする」透明の幕
          =============================== -->
-    <div class="overlay" id="tutorial-overlay" hidden>
-      <div class="panel">
-        <h2 class="panel-title">✦ あそびかた ✦</h2>
-
-        <div class="tutorial-list">
-          <div class="tutorial-row">
-            <span class="tutorial-icon">💎</span>
-            <span>タップして、どんどん宝石をあつめよう!</span>
-          </div>
-          <div class="tutorial-row">
-            <span class="tutorial-icon">⬆️</span>
-            <span>宝石をあつめると「Lv UP」でレベルを上げられるよ。新しい形や色の宝石がふえていく!</span>
-          </div>
-          <div class="tutorial-row">
-            <span class="tutorial-icon">🎁</span>
-            <span>ときどき出てくる宝箱を開けると、フィーバータイム!</span>
-          </div>
-          <div class="tutorial-row">
-            <span class="tutorial-icon">✨</span>
-            <span>まずは「はじめてボーナス」で50個あつめてみよう!</span>
-          </div>
-        </div>
-
-        <button class="close-button" id="tutorial-close">あそぶ!</button>
-      </div>
+    <div class="tutorial-blocker" id="tutorial-blocker" hidden></div>
+    <div class="tutorial-bubble" id="tutorial-bubble" hidden>
+      <p class="tutorial-text" id="tutorial-text"></p>
+      <button class="tutorial-ok" id="tutorial-ok">OK</button>
     </div>
 
     <!-- ===============================

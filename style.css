@@ -18,8 +18,10 @@ body {
   /* ゲーム画面を左右中央に置く */
   display: flex;
   justify-content: center;
-  /* 使うフォント(ゲームっぽい明朝体) */
-  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  /* 使うフォント。「しっぽり明朝」は上品で高級感のある明朝体
+     (index.html で Google Fonts から読み込んでいる)。
+     読み込めない環境では、うしろに書いたフォントが順番に使われる */
+  font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   color: #e8dcc8; /* 基本の文字色(クリーム色) */
   -webkit-tap-highlight-color: transparent; /* スマホでタップした時の灰色の光を消す */
 }
@@ -641,24 +643,94 @@ button.story-card:active {
   font-size: 15px;
 }
 
-/* チュートリアルの説明の1行(絵文字+文章) */
-.tutorial-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 15px;
-  line-height: 1.8;
+/* ---------- チュートリアルの吹き出し ---------- */
+
+/* セリフ中に、他の場所を触れなくする透明の幕。
+   宝石など「触っていいもの」には tutorial-allow クラスを付けて
+   この幕より手前(z-index が上)に出す */
+.tutorial-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
 }
 
-.tutorial-list {
+/* セリフ中でも触っていいもの(script.js がこのクラスを付ける) */
+.tutorial-allow {
+  position: relative;
+  z-index: 16 !important;
+}
+
+/* おじょうさまのセリフの吹き出し */
+.tutorial-bubble {
+  position: absolute;
+  z-index: 17; /* 幕よりさらに手前 */
+  width: 82%;
+  left: 50%;
+  translate: -50% 0; /* ふだんは中央に置く(場所は script.js が変える) */
+  top: 60px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  /* 上品なお手紙のようなクリーム色 */
+  background: linear-gradient(180deg, #faf3e3 0%, #efe2c8 100%);
+  color: #4a3526;
+  border: 2px solid #b08d57;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
 
-.tutorial-icon {
-  font-size: 22px;
-  flex-shrink: 0; /* 絵文字はつぶさない */
+/* セリフの文章。大きめの文字で、改行(\n)もそのまま表示する */
+.tutorial-text {
+  white-space: pre-line;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.9;
+}
+
+/* OKボタン(小さめの金色) */
+.tutorial-ok {
+  align-self: flex-end; /* 右下に置く */
+  min-width: 84px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: bold;
+  color: #4a3526;
+  background: linear-gradient(180deg, #ffe9b8 0%, #d9b878 100%);
+  border: 2px solid #a08050;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tutorial-ok:active {
+  transform: scale(0.95);
+}
+
+/* ボタンなどを指すときの小さめ吹き出し(script.js が付ける) */
+.tutorial-bubble.small {
+  width: 240px;
+  translate: 0 0; /* 中央寄せをやめて、script.js の left/top に従う */
+}
+
+/* 左向きの矢印(吹き出しが「的」の右にあるとき) */
+.tutorial-bubble.arrow-left::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 26px;
+  border: 10px solid transparent;
+  border-right-color: #b08d57; /* 枠と同じ色の三角形 */
+}
+
+/* 右向きの矢印(吹き出しが「的」の左にあるとき) */
+.tutorial-bubble.arrow-right::before {
+  content: "";
+  position: absolute;
+  right: -20px;
+  top: 26px;
+  border: 10px solid transparent;
+  border-left-color: #b08d57;
 }
 
 /* リセット確認画面の説明文 */

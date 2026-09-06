@@ -91,6 +91,49 @@ const products = [
 ];
 
 
+/* =========================================================
+   ★ セリフ編集コーナー ★
+   チュートリアルで出てくる「お屋敷の主(おじょうさま)」のセリフ。
+   文章を変えたいときは、ここを書きかえるだけでOK!
+   バッククォート( ` )で囲むと、改行もそのまま表示される
+   ========================================================= */
+const tutorialLines = {
+  // --- ゲームを開いた直後 ---
+  welcome: `宝石のお屋敷へようこそ。`,
+
+  // OKを押すか、宝石を3個タップすると次へ進む
+  tap: `タップすると
+宝石が集められるわ。`,
+
+  enjoy: `このお屋敷には
+いろんな宝石があるのだけれど……
+まずは遊んでみて頂戴。
+ではごきげんよう。`,
+
+  // --- 50個あつめたあと(Lv UPボタンを指す吹き出し) ---
+  lvupIntro: `宝石を集めたのね。
+なら、「Lv UP」で
+レベルを上げられるわ。`,
+
+  // OKを押すか、形のレベルを上げると次へ進む
+  shapeTry: `まずはこの、形の
+レベルを上げてみて頂戴。
+最初とはいえ、指示ばかりで
+ごめんあそばせ。`,
+
+  praise: `素晴らしいですわ。`,
+
+  // --- ユーザーLv5ではじめての宝箱が出たとき ---
+  chestFound: `あら、わたくしの
+落とし物ですわ。
+拾っていただけるかしら?`,
+
+  chestThanks: `感謝いたしますわ。
+お礼にエレガントタイム!
+ですわ。`,
+};
+
+
 /* ---------- ゲームのデータ(変数) ---------- */
 
 // 「let」は「あとで中身が変わる変数」を作る書き方
@@ -99,7 +142,10 @@ let totalGems = 0;    // これまでに集めた宝石の総数(統計用。減
 let tapCount = 0;     // 宝石をタップした回数(統計用)
 let spentGems = 0;    // 強化につかった宝石の数(統計用)
 let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だけ読める)
-let tutorialSeen = false; // チュートリアルをもう見たかどうか
+let tutorialSeen = false;    // チュートリアル(セリフの案内)をぜんぶ見終わったか
+let firstChestDone = false;  // はじめての特典の宝箱をもう開けたか
+let tutorialStep = null;     // いま表示中のセリフの名前(何も出ていなければ null)
+let tutorialTapCount = 0;    // 「タップすると〜」のセリフ中に宝石を取った数
 
 // 「const」は「変わらない値」を作る書き方
 const MAX_GEMS = 3;   // 画面に同時に出る宝石の最大数(ふだん)
@@ -111,6 +157,7 @@ const FEVER_MAX_GEMS = 12;   // フィーバー中は宝石がこの数まで画
 const CHEST_WAIT_MIN = 120;  // 次の宝箱が出るまでの最短(秒)= 2分
 const CHEST_WAIT_MAX = 300;  // 最長(秒)= 5分
 const CHEST_LIFETIME = 20;   // 宝箱を開けないと消えるまでの時間(秒)
+const CHEST_UNLOCK_LEVEL = 5; // 宝箱が解禁されるユーザーレベル
 
 let feverSecondsLeft = 0;    // フィーバーの残り秒数(0なら通常モード)
 let feverSpawnTimer = null;  // フィーバー中に宝石を出し続けるタイマー
@@ -212,15 +259,18 @@ function updateOneUpgrade(type) {
   }
 }
 
+// ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
+function getUserLevel() {
+  return (
+    upgrades.shape.level + upgrades.color.level +
+    upgrades.size.level + upgrades.speed.level - 3
+  );
+}
+
 function updateDisplay() {
   // toLocaleString() を使うと 1000 → 「1,000」のようにカンマ付きになる
   gemCountDisplay.textContent = gemCount.toLocaleString();
-
-  // ユーザーレベル = 強化した回数ぶんだけ上がる(最初は全部Lv1なので1)
-  const level =
-    upgrades.shape.level + upgrades.color.level +
-    upgrades.size.level + upgrades.speed.level - 3;
-  userLevelDisplay.textContent = level;
+  userLevelDisplay.textContent = getUserLevel();
 
   // 宝石が増減すると「Lv UP ボタンを押せるかどうか」も変わるので、
   // ステータスパネルの表示もここでまとめて新しくする
@@ -248,6 +298,7 @@ function saveGame() {
       spentGems: spentGems,
       unlockedStories: unlockedStories,
       tutorialSeen: tutorialSeen,
+      firstChestDone: firstChestDone,
       sizeLevel: upgrades.size.level,
       shapeLevel: upgrades.shape.level,
       colorLevel: upgrades.color.level,
@@ -280,6 +331,7 @@ function loadGame() {
     spentGems = data.spentGems || 0;
     unlockedStories = data.unlockedStories || 1;
     tutorialSeen = data.tutorialSeen || false;
+    firstChestDone = data.firstChestDone || false;
     upgrades.size.level = data.sizeLevel || 1;
     upgrades.shape.level = data.shapeLevel || 1;
     upgrades.color.level = data.colorLevel || 1;
@@ -533,7 +585,137 @@ function collectGem(gem) {
       endWelcomeRush();
     }
   }
+
+  // 10. 「タップすると宝石が集められるわ。」のセリフ中に
+  //     宝石を3個タップしたら、次のセリフへ進む
+  if (tutorialStep === "tap") {
+    tutorialTapCount += 1;
+    if (tutorialTapCount >= 3) {
+      showTutorialStep("enjoy");
+    }
+  }
 }
+
+
+/* ---------- チュートリアル(おじょうさまのセリフ) ---------- */
+// セリフの中身は、いちばん上の「セリフ編集コーナー」にあるよ
+
+const tutorialBubble = document.getElementById("tutorial-bubble");
+const tutorialText = document.getElementById("tutorial-text");
+const tutorialBlocker = document.getElementById("tutorial-blocker");
+const tutorialOkButton = document.getElementById("tutorial-ok");
+
+// セリフ中でも「触っていいもの」に印を付ける(null なら全部禁止)
+function setTutorialAllow(element) {
+  // まず前回の印をぜんぶ外す
+  document.querySelectorAll(".tutorial-allow").forEach(function (old) {
+    old.classList.remove("tutorial-allow");
+  });
+  if (element !== null) {
+    element.classList.add("tutorial-allow");
+  }
+}
+
+// 吹き出しを「的(まと)」のそばに置く。side は "right"(的の右)か "left"(的の左)
+function placeBubbleNear(target, side) {
+  tutorialBubble.classList.add("small");
+  tutorialBubble.classList.remove("arrow-left", "arrow-right");
+
+  // 的とゲーム画面の位置から、吹き出しを置く場所を計算する
+  const gameRect = gameFrame.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+
+  if (side === "right") {
+    // 的の右に出して、左向きの矢印で的を指す
+    tutorialBubble.classList.add("arrow-left");
+    tutorialBubble.style.left = (targetRect.right - gameRect.left + 16) + "px";
+  } else {
+    // 的の左に出して、右向きの矢印で的を指す
+    tutorialBubble.classList.add("arrow-right");
+    tutorialBubble.style.left = (targetRect.left - gameRect.left - 240 - 16) + "px";
+  }
+  // 高さは的に合わせる。ただし画面の上や下にはみ出さないように、
+  // Math.max(上の限界)と Math.min(下の限界)で行き過ぎを止める
+  let top = targetRect.top - gameRect.top - 14;
+  const lowestTop = gameRect.height - tutorialBubble.offsetHeight - 8;
+  top = Math.min(top, lowestTop);
+  top = Math.max(8, top);
+  tutorialBubble.style.top = top + "px";
+}
+
+// 吹き出しを宝石エリアの上のほう(中央)に置く
+function placeBubbleCenter() {
+  tutorialBubble.classList.remove("small", "arrow-left", "arrow-right");
+  tutorialBubble.style.left = "";
+  tutorialBubble.style.top = "";
+}
+
+// セリフを1つ表示する。場所や「触っていいもの」もセリフごとにここで決める
+function showTutorialStep(step) {
+  tutorialStep = step;
+  tutorialText.textContent = tutorialLines[step];
+  tutorialBubble.hidden = false;
+  tutorialOkButton.hidden = false;
+  tutorialBlocker.hidden = true;
+  setTutorialAllow(null);
+
+  if (step === "lvupIntro" || step === "shapeTry" || step === "praise") {
+    // Lv UPボタンの右に出して、ボタンを指す。セリフ中は他の場所は触れない
+    placeBubbleNear(document.getElementById("lvup-shape"), "right");
+    tutorialBlocker.hidden = false;
+    if (step === "shapeTry") {
+      // このときだけ、形の Lv UP ボタンは特別に押せる!
+      setTutorialAllow(document.getElementById("lvup-shape"));
+    }
+  } else if (step === "chestFound") {
+    // 宝箱の左に出して、宝箱を指す。宝箱をタップするまで進めない(OKも出さない)
+    placeBubbleNear(document.querySelector(".chest"), "left");
+    tutorialBlocker.hidden = false;
+    setTutorialAllow(document.querySelector(".chest"));
+    tutorialOkButton.hidden = true;
+  } else {
+    // それ以外(welcome・tap・enjoy・chestThanks)は中央。うしろの宝石も触れる
+    placeBubbleCenter();
+  }
+
+  if (step === "tap") {
+    tutorialTapCount = 0; // 「3個タップしたら次へ」の数えなおし
+  }
+}
+
+// 吹き出しを閉じる
+function hideTutorial() {
+  tutorialStep = null;
+  tutorialBubble.hidden = true;
+  tutorialBlocker.hidden = true;
+  setTutorialAllow(null);
+}
+
+// チュートリアルをぜんぶ見終わった(もう出さないように保存する)
+function finishTutorial() {
+  tutorialSeen = true;
+  saveGame();
+  hideTutorial();
+}
+
+// OKボタンを押したら、次のセリフへ進む
+tutorialOkButton.addEventListener("click", function () {
+  if (tutorialStep === "welcome") {
+    showTutorialStep("tap");
+  } else if (tutorialStep === "tap") {
+    showTutorialStep("enjoy");
+  } else if (tutorialStep === "enjoy") {
+    hideTutorial(); // 50個あつめたら、また声をかけてくれる
+  } else if (tutorialStep === "lvupIntro") {
+    showTutorialStep("shapeTry");
+  } else if (tutorialStep === "shapeTry") {
+    showTutorialStep("praise");
+  } else if (tutorialStep === "praise") {
+    finishTutorial(); // これでチュートリアルはおしまい!
+  } else if (tutorialStep === "chestThanks") {
+    hideTutorial();
+  }
+});
 
 
 /* ---------- はじめてボーナス ---------- */
@@ -553,8 +735,6 @@ function startWelcomeRush() {
   banner.id = "welcome-banner";
   mainArea.appendChild(banner);
   updateWelcomeBanner();
-
-  showToast("ようこそ! まずは宝石を" + WELCOME_GOAL + "個あつめよう!");
 
   // まず画面いっぱいに宝石を出す!(0.08秒ずつずらして12個)
   for (let i = 0; i < FEVER_MAX_GEMS; i++) {
@@ -585,7 +765,13 @@ function endWelcomeRush() {
     banner.remove();
   }
   playFeverSound(); // おめでとうのファンファーレ
-  showToast(WELCOME_GOAL + "個たっせい! ここからが本番!");
+
+  // チュートリアルの途中なら、おじょうさまが「Lv UP」を教えてくれる
+  if (!tutorialSeen) {
+    showTutorialStep("lvupIntro");
+  } else {
+    showToast(WELCOME_GOAL + "個たっせい! ここからが本番!");
+  }
 }
 
 
@@ -642,12 +828,47 @@ function spawnChest() {
   }, CHEST_LIFETIME * 1000);
 }
 
-// フィーバータイム開始!
+// ユーザーレベル5になったときの、はじめての特典の宝箱。
+// ふつうの宝箱とちがって、右端の決まった場所に出て、消えたりしない
+function spawnFirstChest() {
+  const chest = document.createElement("button");
+  chest.className = "chest";
+  chest.textContent = "🎁";
+  chest.setAttribute("aria-label", "はじめての宝箱をひらく");
+
+  // 吹き出しとかぶらないように、右端の決まった位置に置く
+  chest.style.left = (mainArea.clientWidth - 90) + "px";
+  chest.style.top = Math.floor(mainArea.clientHeight * 0.35) + "px";
+
+  let opened = false;
+  chest.addEventListener("pointerdown", function () {
+    if (opened) {
+      return;
+    }
+    opened = true;
+    chest.remove();
+
+    // もう特典はもらった、と保存しておく(次からはふつうの宝箱が出る)
+    firstChestDone = true;
+    saveGame();
+
+    startFever();                     // お礼のエレガントタイム!
+    showTutorialStep("chestThanks");  // おじょうさまのお礼のセリフ
+    scheduleChest();                  // ここから宝箱制度が本格スタート
+  });
+
+  mainArea.appendChild(chest);
+
+  // おじょうさまが宝箱を指して声をかけてくる(開けるまで他は触れない)
+  showTutorialStep("chestFound");
+}
+
+// フィーバータイム(エレガントタイム)開始!
 function startFever() {
   feverSecondsLeft = FEVER_SECONDS;
   mainArea.classList.add("fever"); // 画面が金色に光る(style.css)
   playFeverSound();
-  showToast("フィーバータイム! " + FEVER_SECONDS + "秒間 宝石ざくざく!");
+  showToast("エレガントタイム! " + FEVER_SECONDS + "秒間、宝石ざくざく!");
 
   // 残り時間のバナーを画面の上に出す
   const banner = document.createElement("div");
@@ -678,7 +899,7 @@ function startFever() {
 function updateFeverBanner() {
   const banner = document.getElementById("fever-banner");
   if (banner) {
-    banner.textContent = "⭐ フィーバータイム 残り " + feverSecondsLeft + " 秒 ⭐";
+    banner.textContent = "✦ エレガントタイム 残り " + feverSecondsLeft + " 秒 ✦";
   }
 }
 
@@ -694,7 +915,7 @@ function endFever() {
   if (banner) {
     banner.remove();
   }
-  showToast("フィーバータイム終了!");
+  showToast("エレガントタイム、おしまい!");
   scheduleChest(); // また数分後に宝箱が出る
 }
 
@@ -746,6 +967,17 @@ function buyUpgrade(type) {
     showToast(up.name + " がMAX! 「" + upgrades[nextType].name + "」の強化が解放された!");
   } else {
     showToast(up.name + " が Lv." + up.level + " になった!");
+  }
+
+  // チュートリアルの「形のレベルを上げてみて頂戴」の最中なら、
+  // 実際に上げられたので、ほめてもらえるセリフへ進む
+  if (tutorialStep === "shapeTry" && type === "shape") {
+    showTutorialStep("praise");
+  }
+
+  // ユーザーレベルが5になったら、はじめての特典の宝箱が出てくる!
+  if (!firstChestDone && getUserLevel() >= CHEST_UNLOCK_LEVEL) {
+    spawnFirstChest();
   }
 }
 
@@ -961,15 +1193,16 @@ function doReset() {
   upgrades.size.level = 1;
   upgrades.speed.level = 1;
   unlockedStories = 1;
-  tutorialSeen = false; // チュートリアルもまた見られるようにする
+  tutorialSeen = false;   // チュートリアルもまた見られるようにする
+  firstChestDone = false; // はじめての宝箱もまた出るようにする
 
-  // 3. フィーバー中だったら終わらせて、画面に残っている宝石をぜんぶ消す
+  // 3. フィーバー中だったら終わらせて、
+  //    画面に残っている宝石と宝箱をぜんぶ消す
   if (feverSecondsLeft > 0) {
     endFever();
   }
-  const gems = mainArea.querySelectorAll(".gem");
-  gems.forEach(function (gem) {
-    gem.remove();
+  mainArea.querySelectorAll(".gem, .chest").forEach(function (item) {
+    item.remove();
   });
 
   // 4. 表示を新しくして、開いていた画面を閉じる
@@ -982,7 +1215,7 @@ function doReset() {
   showToast("データをリセットしました");
   startWelcomeRush();     // すでにボーナス中なら何も起きない
   updateWelcomeBanner();  // バナーの数字を 0 / 50 に戻す
-  document.getElementById("tutorial-overlay").hidden = false; // あそびかたも再表示
+  showTutorialStep("welcome"); // おじょうさまのあいさつも最初から
 }
 
 
@@ -1019,13 +1252,6 @@ document.getElementById("story-close").addEventListener("click", function () {
   storyOverlay.hidden = true;
 });
 
-// チュートリアルの「あそぶ!」ボタン。
-// 閉じたことを保存して、次からは表示しない
-document.getElementById("tutorial-close").addEventListener("click", function () {
-  document.getElementById("tutorial-overlay").hidden = true;
-  tutorialSeen = true;
-  saveGame();
-});
 
 // せってい関係
 document.getElementById("menu-settings").addEventListener("click", openSettings);
@@ -1051,17 +1277,26 @@ setTimeout(spawnGem, 300);
 setTimeout(spawnGem, 600);
 setTimeout(spawnGem, 900);
 
-// 宝箱の出現も予約しておく(2〜5分後のどこかで出る)
-scheduleChest();
-
 // まだ50個あつめていない人(=はじめての人)は、はじめてボーナスで開始!
 // とちゅうでページを閉じても、開き直せば続きから再開する
 if (totalGems < WELCOME_GOAL) {
   startWelcomeRush();
 }
 
-// まだチュートリアルを見ていない人には、あそびかたのポップアップを出す
-// (うしろでは、はじめてボーナスの宝石がどんどんたまっていく)
+// チュートリアルの続きから案内する
 if (!tutorialSeen) {
-  document.getElementById("tutorial-overlay").hidden = false;
+  if (totalGems < WELCOME_GOAL) {
+    showTutorialStep("welcome"); // 最初のあいさつから
+  } else {
+    showTutorialStep("lvupIntro"); // 50個は集めてあるので、Lv UPの案内から
+  }
+}
+
+// 宝箱について:
+// ・特典の宝箱をもう開けた人 → ふつうの宝箱を予約(2〜5分後に出る)
+// ・レベル5に届いているのに特典をまだ開けていない人 → もう一度特典を出す
+if (firstChestDone) {
+  scheduleChest();
+} else if (getUserLevel() >= CHEST_UNLOCK_LEVEL) {
+  spawnFirstChest();
 }
