@@ -624,16 +624,22 @@ function placeBubbleNear(target, side) {
   // 的とゲーム画面の位置から、吹き出しを置く場所を計算する
   const gameRect = gameFrame.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
+  const bubbleWidth = tutorialBubble.offsetWidth; // 吹き出しの実際の横幅
 
+  let left;
   if (side === "right") {
     // 的の右に出して、左向きの矢印で的を指す
     tutorialBubble.classList.add("arrow-left");
-    tutorialBubble.style.left = (targetRect.right - gameRect.left + 16) + "px";
+    left = targetRect.right - gameRect.left + 16;
   } else {
     // 的の左に出して、右向きの矢印で的を指す
     tutorialBubble.classList.add("arrow-right");
-    tutorialBubble.style.left = (targetRect.left - gameRect.left - 240 - 16) + "px";
+    left = targetRect.left - gameRect.left - bubbleWidth - 16;
   }
+  // 画面の左右からはみ出さないように、行き過ぎを止める
+  left = Math.min(left, gameRect.width - bubbleWidth - 8);
+  left = Math.max(8, left);
+  tutorialBubble.style.left = left + "px";
   // 高さは的に合わせる。ただし画面の上や下にはみ出さないように、
   // Math.max(上の限界)と Math.min(下の限界)で行き過ぎを止める
   let top = targetRect.top - gameRect.top - 14;

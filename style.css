@@ -690,7 +690,7 @@ button.story-card:active {
 
 /* OKボタン(小さめの金色) */
 .tutorial-ok {
-  align-self: flex-end; /* 右下に置く */
+  align-self: center; /* 吹き出しの真ん中に置く */
   min-width: 84px;
   padding: 8px 18px;
   font-family: inherit;
@@ -709,7 +709,7 @@ button.story-card:active {
 
 /* ボタンなどを指すときの小さめ吹き出し(script.js が付ける) */
 .tutorial-bubble.small {
-  width: 240px;
+  width: 300px; /* 文章が読みやすいように広めにとる */
   translate: 0 0; /* 中央寄せをやめて、script.js の left/top に従う */
 }
 
