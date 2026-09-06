@@ -156,11 +156,11 @@ const MAX_LEVEL = 10; // 強化レベルの上限
 // 「気持ちよく一気に集められる」+「消えるまえに拾いたくなる」バランス!
 const GEM_CAP = 100;           // 画面に出る宝石の上限(画面いっぱい)
 const GEM_RESUME = 80;         // 上限に達したあと、この数まで減ると湧きが再開する
-const SPAWN_INTERVAL = 900;    // 何ミリ秒ごとに1個湧くか(ふだん)
-const SPAWN_SPEED_BONUS = 60;  // 「秒数」レベル1つごとに、湧きが何ミリ秒早くなるか
+const SPAWN_INTERVAL = 2500;   // 何ミリ秒ごとに1個湧くか(ふだん)
+const SPAWN_SPEED_BONUS = 150; // 「秒数」レベル1つごとに、湧きが何ミリ秒早くなるか
 const RUSH_INTERVAL = 150;     // はじめてボーナス/エレガントタイム中の湧き間隔
 const RUSH_BURST = 12;         // ボーナスなどが始まった瞬間に一気に出す数
-const DECAY_INTERVAL = 3500;   // 何ミリ秒ごとに、いちばん古い宝石が消え始めるか
+const DECAY_INTERVAL = 8000;   // 何ミリ秒ごとに、いちばん古い宝石が消え始めるか
 const DECAY_MIN = 6;           // 画面がこの数以下なら消えない(集めている人の邪魔をしない)
 const DECAY_FADE_TIME = 1500;  // 消えるまでの点滅時間(この間にタップすれば救出できる!)
 let spawnPaused = false;       // 上限に達して湧きがお休み中かどうか
