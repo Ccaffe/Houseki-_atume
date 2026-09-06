@@ -725,13 +725,19 @@ function showTutorialStep(step) {
   setTutorialAllow(null);
 
   if (step === "lvupIntro" || step === "shapeTry" || step === "praise") {
-    // Lv UPボタンの右に出して、ボタンを指す。セリフ中は他の場所は触れない
-    placeBubbleNear(document.getElementById("lvup-shape"), "right");
+    // 「形」の行がスクロールで隠れていたら、まず見える位置まで動かす
+    const targetButton = document.getElementById("lvup-shape");
+    targetButton.scrollIntoView({ block: "nearest" });
+
+    // Lv UPボタンの右に出して、ボタンを指す。セリフ中は他の場所は触れない。
+    // ただし強化パネルの中はさわれる(スクロールできるし、形のボタンも押せる。
+    // ほかの強化のボタンは🔒や宝石不足で押せないので安全)
+    placeBubbleNear(targetButton, "right");
     tutorialBlocker.hidden = false;
+    setTutorialAllow(document.querySelector(".status-rows"));
+
     if (step === "shapeTry") {
-      // このときだけ、形の Lv UP ボタンは特別に押せる!
-      // そして実際にレベルを上げるまで進めない(OKボタンは出さない)
-      setTutorialAllow(document.getElementById("lvup-shape"));
+      // 実際にレベルを上げるまで進めない(OKボタンは出さない)
       tutorialOkButton.hidden = true;
     }
   } else if (step === "chestFound") {
@@ -764,6 +770,13 @@ function finishTutorial() {
   saveGame();
   hideTutorial();
 }
+
+// 強化パネルの中がスクロールされたら、吹き出しもボタンについていく
+document.querySelector(".status-rows").addEventListener("scroll", function () {
+  if (tutorialStep === "lvupIntro" || tutorialStep === "shapeTry" || tutorialStep === "praise") {
+    placeBubbleNear(document.getElementById("lvup-shape"), "right");
+  }
+});
 
 // OKボタンを押したら、次のセリフへ進む
 tutorialOkButton.addEventListener("click", function () {
