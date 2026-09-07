@@ -1732,9 +1732,7 @@ document.getElementById("menu-atsumeru").addEventListener("click", function () {
   showScreen("atsumeru");
 });
 document.getElementById("menu-story").addEventListener("click", function () {
-  fadeChange(function () {
-    showScreen("story");
-  });
+  showScreen("story");
 });
 document.getElementById("menu-store").addEventListener("click", function () {
   showScreen("store");
