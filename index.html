@@ -57,11 +57,23 @@
       </defs>
     </svg>
 
-    <!-- 宝石の「型紙」。<template> の中身は画面に表示されず、
-         script.js が形レベルに合った型紙をコピーして宝石を出現させる。
-         形Lv1=五角形、Lv2=四角形、Lv3=七角形、Lv4=ハート、Lv5〜=星型。
-         ★宝石を自分の画像に差し替えたいときは、script.js のいちばん上の
-           「画像さしかえコーナー」を見てね(README.md にも説明あり) -->
+    <!-- ★★★ 宝石の「型紙」(デザインはここを書きかえる!) ★★★
+         <template> の中身は画面には表示されず、script.js がこの中から
+         「形の段階」に合ったものをコピーして、宝石を出現させます。
+
+         段階は10種類。形レベルが下の節目に届くと、新しい形が増えます:
+           1=五角形(Lv1〜)   2=四角形(Lv2〜)   3=七角形(Lv3〜)
+           4=ハート型(Lv4〜) 5=星型(Lv5〜)     6=六角形(Lv6〜)
+           7=しずく型(Lv7〜) 8=ひし形(Lv8〜)   9=王冠型(Lv20〜)
+           10=花型(Lv30)
+
+         ■ 自分でデザインするときのルール
+           ・viewBox="0 0 200 200" の中に、200×200 のマス目で図形を描く
+           ・外側の色は fill="url(#gemOutside)"、内側は fill="url(#gemInside)"
+             と書くと、宝石らしいグラデーションと色変化が自動で付きます
+           ・data-shape="なまえ" は表示に使わないメモ(自由に変えてOK)
+         ■ 絵(png など)に差し替えたいときは、script.js のいちばん上の
+           「宝石デザインさしかえコーナー」を見てね(README.md にも説明あり) -->
 
     <!-- 形Lv1: 五角形の宝石 -->
     <template id="gem-template-1">
@@ -141,6 +153,106 @@
                    fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
           <circle cx="80" cy="60" r="7" fill="#ffffff" opacity="0.9"/>
           <circle cx="135" cy="125" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv6〜: 六角形の宝石 -->
+    <template id="gem-template-6">
+      <button class="gem" data-shape="六角形" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <polygon points="190,100 145,178 55,178 10,100 55,22 145,22"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <polygon points="145,100 122.5,139 77.5,139 55,100 77.5,61 122.5,61"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="190" y1="100" x2="145" y2="100" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="145" y1="178" x2="122.5" y2="139" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="55"  y1="178" x2="77.5"  y2="139" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="10"  y1="100" x2="55"    y2="100" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="55"  y1="22"  x2="77.5"  y2="61"  stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="145" y1="22"  x2="122.5" y2="61"  stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="72" cy="55" r="8" fill="#ffffff" opacity="0.9"/>
+          <circle cx="148" cy="128" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv7〜: しずく型の宝石 -->
+    <template id="gem-template-7">
+      <button class="gem" data-shape="しずく型" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <path d="M100 10 C 135 65 178 115 178 140 C 178 175 143 192 100 192 C 57 192 22 175 22 140 C 22 115 65 65 100 10 Z"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <!-- transform で同じしずくを縮めて内側に置いている -->
+          <path d="M100 10 C 135 65 178 115 178 140 C 178 175 143 192 100 192 C 57 192 22 175 22 140 C 22 115 65 65 100 10 Z"
+                transform="translate(56 62) scale(0.44)"
+                fill="url(#gemInside)" stroke="#ffffff" stroke-width="2.5"/>
+          <circle cx="70" cy="140" r="8" fill="#ffffff" opacity="0.9"/>
+          <circle cx="132" cy="165" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv8〜: ひし形の宝石 -->
+    <template id="gem-template-8">
+      <button class="gem" data-shape="ひし形" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <polygon points="100,10 180,100 100,190 20,100"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <polygon points="100,62 148,100 100,138 52,100"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="100" y1="10"  x2="100" y2="62"  stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="180" y1="100" x2="148" y2="100" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="100" y1="190" x2="100" y2="138" stroke="#ffffff" stroke-width="1.5"/>
+          <line x1="20"  y1="100" x2="52"  y2="100" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="75" cy="75" r="7" fill="#ffffff" opacity="0.9"/>
+          <circle cx="128" cy="128" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv20〜: 王冠型の宝石(節目のごほうび!) -->
+    <template id="gem-template-9">
+      <button class="gem" data-shape="王冠型" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <polygon points="22,172 22,52 61,96 100,32 139,96 178,52 178,172"
+                   fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <polygon points="30,172 30,138 170,138 170,172"
+                   fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="61"  cy="118" r="10" fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="100" cy="105" r="12" fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="139" cy="118" r="10" fill="url(#gemInside)" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="40" cy="70" r="6" fill="#ffffff" opacity="0.9"/>
+          <circle cx="160" cy="158" r="5" fill="#ffffff" opacity="0.7"/>
+        </svg>
+      </button>
+    </template>
+
+    <!-- 形Lv30: 花型の宝石(いちばん最後のごほうび!) -->
+    <template id="gem-template-10">
+      <button class="gem" data-shape="花型" aria-label="宝石をあつめる">
+        <svg viewBox="0 0 200 200" class="gem-svg">
+          <!-- 花びら1枚を、まんなか(100,100)のまわりに60度ずつ回して6枚にしている -->
+          <path d="M100 100 C 76 62 76 38 100 8 C 124 38 124 62 100 100 Z"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <path d="M100 100 C 76 62 76 38 100 8 C 124 38 124 62 100 100 Z"
+                transform="rotate(60 100 100)"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <path d="M100 100 C 76 62 76 38 100 8 C 124 38 124 62 100 100 Z"
+                transform="rotate(120 100 100)"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <path d="M100 100 C 76 62 76 38 100 8 C 124 38 124 62 100 100 Z"
+                transform="rotate(180 100 100)"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <path d="M100 100 C 76 62 76 38 100 8 C 124 38 124 62 100 100 Z"
+                transform="rotate(240 100 100)"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <path d="M100 100 C 76 62 76 38 100 8 C 124 38 124 62 100 100 Z"
+                transform="rotate(300 100 100)"
+                fill="url(#gemOutside)" stroke="#f5eaff" stroke-width="2"/>
+          <!-- まんなかの花芯 -->
+          <circle cx="100" cy="100" r="27" fill="url(#gemInside)" stroke="#ffffff" stroke-width="2"/>
+          <circle cx="92" cy="92" r="7" fill="#ffffff" opacity="0.9"/>
         </svg>
       </button>
     </template>

@@ -2,29 +2,46 @@
    script.js — ゲームの動き(プログラム)を書くファイル
 
    このゲームの流れ:
-   1. 画面に宝石が2〜3個、ランダムな場所に出現する
+   1. 宝石がすこしずつ湧いて、画面にたまっていく(古いものは点滅して消える)
    2. 宝石をタップすると、効果音と共にキラッと消えて集まる
-   3. 「Lv UP」ボタンで、集めた宝石を使って強化ができる
-      ・大きさ … 宝石が大きくなってタップしやすくなる
-      ・形   … 1個で集まる宝石の数が増える
-      ・色   … 虹色のレア宝石(5倍)が出やすくなる
-   4. 「せってい」から、これまでの統計が見られる
-   5. データはブラウザに保存される(次に開いたときも残る)
+   3. 「Lv UP」ボタンで、集めた宝石を使って強化ができる(Lv1〜30)
+      ・形     … 新しい形の宝石がふえる + 点数アップ
+      ・色     … 新しい色の宝石がふえる + 点数アップ
+      ・大きさ … 大きい宝石がふえる     + 点数アップ
+      ・秒数   … 宝石が湧いてくる間隔が短くなる
+      ・範囲   … タップが当たる範囲が広くなる
+      前の強化が Lv10 になると、次の強化が解放される
+   4. ときどき出る宝箱を開けると「エレガントタイム」!
+   5. 「ストーリー」「ストア」「せってい」の画面も下のメニューから
+   6. データはブラウザに保存される(次に開いたときも残る)
    ========================================================= */
 
 /* =========================================================
-   ★ 画像さしかえコーナー ★
-   宝石を自分の画像にしたいときは、画像ファイルをこのフォルダーに
-   入れて、下の null を "ファイル名" に書きかえるだけ!
-   (例)  1: "gem.png",
-   null のままの形は、HTML の型紙(SVG)で描いた宝石になる
+   ★ 宝石デザインさしかえコーナー ★
+
+   宝石の見た目は「10種類(=デザイン段階)」あります。
+   形レベルが上がると、下の表の順番に新しい宝石が増えていきます。
+
+   ■ 自分の絵に差し替えたいとき
+     絵のファイル(png や svg)をこのフォルダーに入れて、
+     下の null を "ファイル名" に書きかえるだけ!
+       (例)  1: "gem.png",
+     null のままの段階は、index.html の型紙(SVG)で描いた宝石になります。
+
+   ■ SVG の形そのものを描きかえたいとき
+     index.html の <template id="gem-template-1"> 〜 -10 を書きかえます。
    ========================================================= */
 const gemImages = {
-  1: null, // 形Lv1: 五角形の宝石のかわりに使う画像(例: "gem.png")
-  2: null, // 形Lv2: 四角形
-  3: null, // 形Lv3: 七角形
-  4: null, // 形Lv4: ハート型
-  5: null, // 形Lv5〜: 星型
+  1:  null, // 五角形   (形Lv1〜)
+  2:  null, // 四角形   (形Lv2〜)
+  3:  null, // 七角形   (形Lv3〜)
+  4:  null, // ハート型 (形Lv4〜)
+  5:  null, // 星型     (形Lv5〜)
+  6:  null, // 六角形   (形Lv6〜)
+  7:  null, // しずく型 (形Lv7〜)
+  8:  null, // ひし形   (形Lv8〜)
+  9:  null, // 王冠型   (形Lv20〜)
+  10: null, // 花型     (形Lv30)
 };
 
 
@@ -148,7 +165,28 @@ let tutorialStep = null;     // いま表示中のセリフの名前(何も出�
 let tutorialTapCount = 0;    // 「タップすると〜」のセリフ中に宝石を取った数
 
 // 「const」は「変わらない値」を作る書き方
-const MAX_LEVEL = 10; // 強化レベルの上限
+const MAX_LEVEL = 30;    // 強化レベルの上限(ここまで上げられる)
+const UNLOCK_LEVEL = 10; // 前の強化がこのレベルになると、次の強化が解放される
+
+// ---- 見た目が変わるレベル(デザイン段階) ----
+// レベルが1上がるたびに見た目が変わると、すぐネタ切れになってしまう。
+// そこで「この表のレベルに届いたときだけ見た目が変わる」ようにしている。
+// 最初の8レベルはどんどん変わって、そのあとは Lv20 と Lv30 が節目!
+// ※ 表を増やせば段階も増える(index.html の型紙も同じ数だけ用意してね)
+const DESIGN_STAGE_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 20, 30];
+const DESIGN_STAGE_COUNT = DESIGN_STAGE_LEVELS.length; // 段階の数(10種類)
+
+// レベルから「いま何段階目の見た目か」を調べる関数。1〜10 が返ってくる。
+// 例) Lv8→8段階目、Lv15→まだ8段階目、Lv20→9段階目、Lv30→10段階目
+function getDesignStage(level) {
+  let stage = 1;
+  for (let i = 0; i < DESIGN_STAGE_LEVELS.length; i++) {
+    if (level >= DESIGN_STAGE_LEVELS[i]) {
+      stage = i + 1;
+    }
+  }
+  return stage;
+}
 
 // ---- 宝石の湧き方(増え方・消え方)の設定 ----
 // 宝石は一定の間隔でどんどん湧いてたまっていき、
@@ -157,7 +195,8 @@ const MAX_LEVEL = 10; // 強化レベルの上限
 const GEM_CAP = 100;           // 画面に出る宝石の上限(画面いっぱい)
 const GEM_RESUME = 80;         // 上限に達したあと、この数まで減ると湧きが再開する
 const SPAWN_INTERVAL = 2500;   // 何ミリ秒ごとに1個湧くか(ふだん)
-const SPAWN_SPEED_BONUS = 150; // 「秒数」レベル1つごとに、湧きが何ミリ秒早くなるか
+const SPAWN_SPEED_BONUS = 70;  // 「秒数」レベル1つごとに、湧きが何ミリ秒早くなるか
+const SPAWN_INTERVAL_MIN = 400; // どんなに強化しても、これより早くはならない
 const RUSH_INTERVAL = 150;     // はじめてボーナス/エレガントタイム中の湧き間隔
 const RUSH_BURST = 12;         // ボーナスなどが始まった瞬間に一気に出す数
 const DECAY_INTERVAL = 8000;   // 何ミリ秒ごとに、いちばん古い宝石が消え始めるか
@@ -196,7 +235,8 @@ const upgrades = {
 };
 
 // 強化が解放される順番。
-// 前の強化を Lv MAX まで上げると、次の強化が解放される!
+// 前の強化を UNLOCK_LEVEL(Lv10)まで上げると、次の強化が解放される!
+// ※ MAX(Lv30)まで上げなくてよいので、次の強化がすぐ楽しめる
 const UPGRADE_ORDER = ["shape", "color", "size", "speed", "range"];
 
 // その強化がもう解放されているかどうかを調べる関数。
@@ -206,9 +246,9 @@ function isUpgradeUnlocked(type) {
   if (place === 0) {
     return true; // 最初の「形」はいつでも解放されている
   }
-  // ひとつ前の強化が MAX なら解放!
+  // ひとつ前の強化が Lv10 まで育っていれば解放!
   const previousType = UPGRADE_ORDER[place - 1];
-  return upgrades[previousType].level >= MAX_LEVEL;
+  return upgrades[previousType].level >= UNLOCK_LEVEL;
 }
 
 // 次のレベルに上げるのに必要な宝石の数。
@@ -445,6 +485,7 @@ function spawnLoop() {
   // 湧く間隔を計算する。「秒数」レベル1つごとに少し早くなり、
   // はじめてボーナス中とエレガントタイム中はいつでも爆速!
   let interval = SPAWN_INTERVAL - (upgrades.speed.level - 1) * SPAWN_SPEED_BONUS;
+  interval = Math.max(SPAWN_INTERVAL_MIN, interval); // 早くなりすぎないように
   if (feverSecondsLeft > 0 || welcomeRushActive) {
     interval = RUSH_INTERVAL;
   }
@@ -514,11 +555,14 @@ function spawnGem() {
   const gemSizeLevel = Math.floor(Math.random() * upgrades.size.level) + 1;
   const gemColorLevel = Math.floor(Math.random() * upgrades.color.level) + 1;
 
-  // 形レベルに合った型紙(template)を選んで、コピーして宝石ボタンを作る。
-  // 形は5種類なので、Lv5以上はずっと星型。
-  // Math.min(a, b) は「a と b の小さいほう」を返す
-  const shapeNumber = Math.min(gemShapeLevel, 5);
-  const gemTemplate = document.getElementById("gem-template-" + shapeNumber);
+  // この宝石の「見た目の段階」を調べる(1〜10)。
+  // レベルが上がるたびではなく、Lv1〜8・Lv20・Lv30 の節目で変わる
+  const shapeStage = getDesignStage(gemShapeLevel);
+  const sizeStage = getDesignStage(gemSizeLevel);
+  const colorStage = getDesignStage(gemColorLevel);
+
+  // 段階に合った型紙(template)を選んで、コピーして宝石ボタンを作る
+  const gemTemplate = document.getElementById("gem-template-" + shapeStage);
   const gem = gemTemplate.content.firstElementChild.cloneNode(true);
 
   // 抽選したレベルを、宝石自身にメモしておく(dataset = 部品に付けられるメモ)。
@@ -529,7 +573,7 @@ function spawnGem() {
 
   // ★ 画像さしかえコーナーに画像が設定されていたら、
   //    SVG のかわりにその画像を表示する
-  const imageFile = gemImages[shapeNumber];
+  const imageFile = gemImages[shapeStage];
   if (imageFile !== null) {
     const img = document.createElement("img");
     img.src = imageFile;
@@ -541,16 +585,16 @@ function spawnGem() {
   }
 
   // 大きさをランダムに決める(60〜110ピクセル)。
-  // さらに、この宝石の「大きさレベル」1つにつき +5ピクセルずつ大きくなる。
-  // ただし大きくなりすぎると画面いっぱいになってしまうので、
-  // 見た目の成長は Lv7(+30ピクセル)で打ち止め(ポイントは増え続ける!)
+  // さらに、大きさの「段階」が1つ上がるごとに +4ピクセルずつ大きくなる。
+  // 段階なので、Lv1〜8・Lv20・Lv30 の節目でだけ大きくなる
+  // (画面いっぱいにならないよう、10段階目でも +36ピクセルまで。
+  //  見た目が止まっても、ポイントはレベルぶんずっと増え続ける!)
   // Math.random() は「0以上1未満のランダムな数」を出してくれる
-  const growLevel = Math.min(gemSizeLevel - 1, 6);
-  const size = 60 + Math.random() * 50 + growLevel * 5;
+  const size = 60 + Math.random() * 50 + (sizeStage - 1) * 4;
 
   // 「範囲」レベルで、タップが当たる見えない余白(padding)を広げる。
-  // 1レベルごとに、まわり +3ピクセルずつ当たりやすくなる
-  const hitPadding = (upgrades.range.level - 1) * 3;
+  // 1レベルごとに、まわり +2ピクセルずつ当たりやすくなる(最大40ピクセル)
+  const hitPadding = Math.min((upgrades.range.level - 1) * 2, 40);
   gem.style.padding = hitPadding + "px";
   // 幅は「宝石の絵+左右の余白」ぶん(絵の大きさは変わらない)
   gem.style.width = (size + hitPadding * 2) + "px";
@@ -570,12 +614,12 @@ function spawnGem() {
   gem.style.left = x + "px";
   gem.style.top = y + "px";
 
-  // 色を決める。基本の色は「赤」で、色レベルが高い宝石ほど
+  // 色を決める。基本の色は「赤」で、色の段階が進むほど
   // 色相環(赤→オレンジ→黄→緑→青)を進んだ色になる。
   // 赤(0度)から青(240度)までを9歩で進むので、1歩 = 240 ÷ 9 ≒ 26.7度。
-  // 例: 色Lv1 = 0度(赤)、色Lv5 ≒ 107度(緑)、色Lv10 = 240度(青)
-  const hueStep = 240 / (MAX_LEVEL - 1);
-  const hue = (gemColorLevel - 1) * hueStep;
+  // 例: 1段階目 = 0度(赤)、5段階目 ≒ 107度(緑)、10段階目 = 240度(青)
+  const hueStep = 240 / (DESIGN_STAGE_COUNT - 1);
+  const hue = (colorStage - 1) * hueStep;
   gem.style.setProperty("--hue", hue + "deg"); // style.css の hue-rotate で使われる
 
   // この宝石がタップされたら collectGem を動かす。
@@ -1033,11 +1077,18 @@ function buyUpgrade(type) {
   updateDisplay();
   saveGame();
 
-  // MAXになったら、次の強化が解放されたことをお知らせする
+  // お知らせを出す。うれしい節目のときは特別なメッセージ!
   const place = UPGRADE_ORDER.indexOf(type);
   const nextType = UPGRADE_ORDER[place + 1]; // 次がなければ undefined になる
-  if (up.level >= MAX_LEVEL && nextType !== undefined) {
-    showToast(up.name + " がMAX! 「" + upgrades[nextType].name + "」の強化が解放された!");
+  const stageChanged = getDesignStage(up.level) > getDesignStage(up.level - 1);
+  if (up.level === UNLOCK_LEVEL && nextType !== undefined) {
+    // ちょうど Lv10 になった → 次の強化が解放された!
+    showToast(up.name + " が Lv." + UNLOCK_LEVEL + "! 「" + upgrades[nextType].name + "」の強化が解放された!");
+  } else if (up.level >= MAX_LEVEL) {
+    showToast(up.name + " が Lv." + MAX_LEVEL + " でMAX! きわめましたわ!");
+  } else if (stageChanged) {
+    // 見た目が変わる節目にとどいた
+    showToast(up.name + " が Lv." + up.level + "! 新しい宝石があらわれた!");
   } else {
     showToast(up.name + " が Lv." + up.level + " になった!");
   }
