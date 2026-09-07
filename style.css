@@ -167,6 +167,21 @@ body {
   pointer-events: none; /* 消えている途中に2回クリックできないようにする */
 }
 
+/* まとめ取りの波紋(「範囲」強化で複数の宝石を集めたときに広がる円) */
+.tap-ripple {
+  position: absolute;
+  border-radius: 50%; /* まん丸にする */
+  border: 3px solid rgba(255, 240, 200, 0.9);
+  box-shadow: 0 0 20px rgba(255, 230, 160, 0.6);
+  pointer-events: none; /* タップの邪魔をしない */
+  animation: ripple-spread 0.5s ease-out forwards;
+}
+
+@keyframes ripple-spread {
+  from { transform: scale(0.3); opacity: 0.9; }
+  to   { transform: scale(1);   opacity: 0; }
+}
+
 /* 「+1」がふわっと浮かぶ演出(script.js がこのクラスの文字を作る) */
 .plus-one {
   position: absolute;

@@ -211,8 +211,15 @@ const CHEST_WAIT_MAX = 300;  // 最長(秒)= 5分
 const CHEST_LIFETIME = 20;   // 宝箱を開けないと消えるまでの時間(秒)
 const CHEST_UNLOCK_LEVEL = 5; // 宝箱が解禁されるユーザーレベル
 
+// ---- 「範囲」強化の設定 ----
+// タップした宝石のまわりにある宝石も、まとめて集められる!
+// 範囲Lv1 は半径0(タップした1個だけ)。1レベルごとに半径が広がる
+const RANGE_RADIUS_PER_LEVEL = 6; // 範囲レベル1つごとに、半径が何ピクセル広がるか
+const GEM_HIT_PADDING = 6;        // 宝石まわりの、押しやすくするための小さな余白
+
 let feverSecondsLeft = 0;    // フィーバーの残り秒数(0なら通常モード)
 let feverCountTimer = null;  // 残り時間をカウントダウンするタイマー
+let chestTimer = null;       // 次の宝箱の出現予約(いつも1本だけ)
 
 // ---- はじめてボーナスの設定 ----
 // はじめて遊ぶときは、宝石が画面いっぱいに出続けて、
@@ -592,9 +599,9 @@ function spawnGem() {
   // Math.random() は「0以上1未満のランダムな数」を出してくれる
   const size = 60 + Math.random() * 50 + (sizeStage - 1) * 4;
 
-  // 「範囲」レベルで、タップが当たる見えない余白(padding)を広げる。
-  // 1レベルごとに、まわり +2ピクセルずつ当たりやすくなる(最大40ピクセル)
-  const hitPadding = Math.min((upgrades.range.level - 1) * 2, 40);
+  // 宝石のまわりに小さな余白をつけて、少し押しやすくする
+  // (「範囲」強化の"まとめ取り"は collectAround 関数のほうで行う)
+  const hitPadding = GEM_HIT_PADDING;
   gem.style.padding = hitPadding + "px";
   // 幅は「宝石の絵+左右の余白」ぶん(絵の大きさは変わらない)
   gem.style.width = (size + hitPadding * 2) + "px";
@@ -627,7 +634,7 @@ function spawnGem() {
   // click はスマホで2本指同時にタップしても1つしか発生しないけど、
   // pointerdown は指1本ごとに発生するので、複数同時タップで複数集められる
   gem.addEventListener("pointerdown", function () {
-    collectGem(gem);
+    collectAround(gem);
   });
 
   // メインエリアに追加すると、ぽんっと画面に現れる
@@ -637,7 +644,69 @@ function spawnGem() {
 
 /* ---------- 宝石をタップして集めたときの処理 ---------- */
 
-function collectGem(gem) {
+// 宝石の「まんなかの座標」を調べる小さな関数
+function getGemCenter(gem) {
+  return {
+    x: gem.offsetLeft + gem.offsetWidth / 2,
+    y: gem.offsetTop + gem.offsetHeight / 2,
+  };
+}
+
+// 「範囲」レベルから、まとめて取れる半径(ピクセル)を計算する。
+// Lv1 は 0 なのでタップした1個だけ。Lv30 なら半径174ピクセル!
+function getCollectRadius() {
+  return (upgrades.range.level - 1) * RANGE_RADIUS_PER_LEVEL;
+}
+
+// タップされたときの入り口。
+// タップした宝石と、その半径内にあるまわりの宝石をまとめて集める
+function collectAround(gem) {
+  if (gem.classList.contains("collected")) {
+    return; // もう集め終わっている宝石なら何もしない
+  }
+
+  const radius = getCollectRadius();
+  const center = getGemCenter(gem);
+
+  // まずタップした宝石を集める(音はここで1回だけ鳴らす)
+  collectGem(gem, true);
+
+  if (radius <= 0) {
+    return; // 範囲Lv1 のうちは1個だけ
+  }
+
+  // まわりの宝石も、半径の中に入っていればまとめて集める。
+  // Math.hypot(よこの差, たての差) で2点のあいだの距離が出せる
+  const others = mainArea.querySelectorAll(".gem:not(.collected)");
+  others.forEach(function (other) {
+    const c = getGemCenter(other);
+    const distance = Math.hypot(c.x - center.x, c.y - center.y);
+    if (distance <= radius) {
+      collectGem(other, false); // 2個目からは音を鳴らさない
+    }
+  });
+
+  // 集めた範囲がひと目でわかるように、円の波紋を出す
+  showRipple(center.x, center.y, radius);
+}
+
+// まとめ取りの波紋(広がって消える円)を表示する
+function showRipple(x, y, radius) {
+  const ripple = document.createElement("div");
+  ripple.className = "tap-ripple";
+  ripple.style.left = (x - radius) + "px";
+  ripple.style.top = (y - radius) + "px";
+  ripple.style.width = (radius * 2) + "px";
+  ripple.style.height = (radius * 2) + "px";
+  mainArea.appendChild(ripple);
+  setTimeout(function () {
+    ripple.remove();
+  }, 500);
+}
+
+
+// gem = 集める宝石、withSound = 音を鳴らすか(まとめ取りの2個目以降は false)
+function collectGem(gem, withSound) {
   // 消えている途中の宝石をもう一度クリックしても、二重に数えない
   if (gem.classList.contains("collected")) {
     return;
@@ -662,8 +731,10 @@ function collectGem(gem) {
   updateDisplay();
   saveGame();
 
-  // 4. キラーン♪ と鳴らす
-  playCollectSound();
+  // 4. キラーン♪ と鳴らす(まとめ取りのときは1回だけ鳴らす)
+  if (withSound !== false) {
+    playCollectSound();
+  }
 
   // 5. 宝石のあった場所(真ん中)に「+○」を飛ばす
   const centerX = gem.offsetLeft + gem.clientWidth / 2;
@@ -897,18 +968,25 @@ function endWelcomeRush() {
 
 /* ---------- 宝箱とフィーバータイム ---------- */
 
-// 次の宝箱の出現を予約する(2〜5分後のどこかでランダムに出る)
+// 次の宝箱の出現を予約する(2〜5分後のどこかでランダムに出る)。
+// ※ 予約は「いつも1本だけ」。前の予約を消してから新しく取るので、
+//   予約がたまって宝箱がいくつも出てしまうことがない
 function scheduleChest() {
+  clearTimeout(chestTimer); // 前の予約があれば取り消す
   const waitSeconds = CHEST_WAIT_MIN + Math.random() * (CHEST_WAIT_MAX - CHEST_WAIT_MIN);
-  setTimeout(spawnChest, waitSeconds * 1000); // ×1000 で秒→ミリ秒にする
+  chestTimer = setTimeout(spawnChest, waitSeconds * 1000); // ×1000 で秒→ミリ秒にする
 }
 
 // 宝箱を1個、ランダムな場所に出現させる
 function spawnChest() {
-  // ストーリー画面などで宝石エリアが隠れているとき、フィーバー中、
-  // はじめてボーナス中は、少し待ってからもう一度チャレンジ
-  if (mainArea.hidden || feverSecondsLeft > 0 || welcomeRushActive) {
-    setTimeout(spawnChest, 5000);
+  // つぎのときは、少し待ってからもう一度チャレンジする:
+  //  ・ストーリー画面などで宝石エリアが隠れている
+  //  ・エレガントタイム中/はじめてボーナス中
+  //  ・すでに宝箱が画面に出ている(2個出さないため!)
+  if (mainArea.hidden || feverSecondsLeft > 0 || welcomeRushActive ||
+      mainArea.querySelector(".chest")) {
+    clearTimeout(chestTimer);
+    chestTimer = setTimeout(spawnChest, 5000);
     return;
   }
 
@@ -951,6 +1029,11 @@ function spawnChest() {
 // ユーザーレベル5になったときの、はじめての特典の宝箱。
 // ふつうの宝箱とちがって、右端の決まった場所に出て、消えたりしない
 function spawnFirstChest() {
+  // すでに宝箱が出ているなら、もう出さない(2個出さないため)
+  if (mainArea.querySelector(".chest")) {
+    return;
+  }
+
   const chest = document.createElement("button");
   chest.className = "chest";
   chest.textContent = "🎁";
@@ -985,6 +1068,17 @@ function spawnFirstChest() {
 
 // フィーバータイム(エレガントタイム)開始!
 function startFever() {
+  // すでにエレガントタイム中なら、二重に始めずに「時間を延長」する。
+  // (※ 二重に始めるとカウントダウンのタイマーが2本になってしまい、
+  //     終了のお知らせが何度も出てしまう)
+  if (feverSecondsLeft > 0) {
+    feverSecondsLeft += FEVER_SECONDS;
+    updateFeverBanner();
+    playFeverSound();
+    showToast("エレガントタイム 延長! 残り " + feverSecondsLeft + "秒!");
+    return;
+  }
+
   feverSecondsLeft = FEVER_SECONDS;
   mainArea.classList.add("fever"); // 画面が金色に光る(style.css)
   playFeverSound();
@@ -1004,6 +1098,7 @@ function startFever() {
   }
 
   // 1秒ごとに残り時間を1減らして、0になったら終了
+  clearInterval(feverCountTimer); // 念のため、前のタイマーが残っていたら止める
   feverCountTimer = setInterval(function () {
     feverSecondsLeft -= 1;
     updateFeverBanner();
@@ -1023,8 +1118,15 @@ function updateFeverBanner() {
 
 // フィーバータイム終了
 function endFever() {
+  // もう終わっているのに、もう一度呼ばれたときは何もしない
+  // (これがないと「おしまい!」のお知らせが何度も出てしまう)
+  if (feverCountTimer === null) {
+    return;
+  }
+
   feverSecondsLeft = 0; // spawnLoop の湧きもふつうの速さに戻る
   clearInterval(feverCountTimer); // カウントダウンをやめる
+  feverCountTimer = null;
   if (!welcomeRushActive) {
     mainArea.classList.remove("fever"); // はじめてボーナス中でなければ光を消す
   }
