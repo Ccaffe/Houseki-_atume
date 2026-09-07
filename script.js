@@ -241,6 +241,8 @@ let unlockedStories = 1; // 読めるストーリーの数(最初は1話目だ�
 let tutorialSeen = false;    // チュートリアル(セリフの案内)をぜんぶ見終わったか
 let firstChestDone = false;  // はじめての特典の宝箱をもう開けたか
 let tutorialStep = null;     // いま表示中のセリフの名前(何も出ていなければ null)
+let pausedTutorialStep = null; // 別の画面に行っているあいだ、預かっておくセリフ
+let currentScreen = "atsumeru"; // いま開いている画面("atsumeru"・"story"・"store")
 let tutorialTapCount = 0;    // 「タップすると〜」のセリフ中に宝石を取った数
 
 // 「const」は「変わらない値」を作る書き方
@@ -968,6 +970,33 @@ function hideTutorial() {
   setTutorialAllow(null);
 }
 
+// 「あつめる」画面から離れるとき:出ているセリフを預かって、いったん隠す。
+// (ストーリー画面に、あつめるのセリフが残らないようにするため)
+function pauseTutorial() {
+  if (tutorialStep === null) {
+    return; // セリフが出ていなければ、何もしない
+  }
+  pausedTutorialStep = tutorialStep; // どこまで話したか覚えておく
+  hideTutorial();
+}
+
+// 「あつめる」画面にもどってきたとき:預かっていたセリフを、また出す
+function restoreTutorial() {
+  if (pausedTutorialStep === null) {
+    return; // 預かっているセリフがなければ、何もしない
+  }
+
+  const step = pausedTutorialStep;
+  pausedTutorialStep = null;
+
+  // 宝箱を指すセリフなのに、その宝箱がもうないときは、出さずにおしまい
+  if (step === "chestFound" && !mainArea.querySelector(".chest")) {
+    return;
+  }
+
+  showTutorialStep(step);
+}
+
 // チュートリアルをぜんぶ見終わった(もう出さないように保存する)
 function finishTutorial() {
   tutorialSeen = true;
@@ -1050,7 +1079,7 @@ function endWelcomeRush() {
   if (!tutorialSeen) {
     showTutorialStep("lvupIntro");
   } else {
-    showToast(WELCOME_GOAL + "個たっせい! ここからが本番!");
+    showToast(WELCOME_GOAL + "個たっせい! ここからが本番!", "atsumeru");
   }
 }
 
@@ -1164,14 +1193,14 @@ function startFever() {
     feverSecondsLeft += FEVER_SECONDS;
     updateFeverBanner();
     playFeverSound();
-    showToast("エレガントタイム 延長! 残り " + feverSecondsLeft + "秒!");
+    showToast("エレガントタイム 延長! 残り " + feverSecondsLeft + "秒!", "atsumeru");
     return;
   }
 
   feverSecondsLeft = FEVER_SECONDS;
   mainArea.classList.add("fever"); // 画面が金色に光る(style.css)
   playFeverSound();
-  showToast("エレガントタイム! " + FEVER_SECONDS + "秒間、宝石ざくざく!");
+  showToast("エレガントタイム! " + FEVER_SECONDS + "秒間、宝石ざくざく!", "atsumeru");
 
   // 残り時間のバナーを画面の上に出す
   const banner = document.createElement("div");
@@ -1223,7 +1252,7 @@ function endFever() {
   if (banner) {
     banner.remove();
   }
-  showToast("エレガントタイム、おしまい!");
+  showToast("エレガントタイム、おしまい!", "atsumeru");
   scheduleChest(); // また数分後に宝箱が出る
 }
 
@@ -1274,14 +1303,14 @@ function buyUpgrade(type) {
   const stageChanged = getDesignStage(up.level) > getDesignStage(up.level - 1);
   if (up.level === UNLOCK_LEVEL && nextType !== undefined) {
     // ちょうど Lv10 になった → 次の強化が解放された!
-    showToast(up.name + " が Lv." + UNLOCK_LEVEL + "! 「" + upgrades[nextType].name + "」の強化が解放された!");
+    showToast(up.name + " が Lv." + UNLOCK_LEVEL + "! 「" + upgrades[nextType].name + "」の強化が解放された!", "atsumeru");
   } else if (up.level >= MAX_LEVEL) {
-    showToast(up.name + " が Lv." + MAX_LEVEL + " でMAX! きわめましたわ!");
+    showToast(up.name + " が Lv." + MAX_LEVEL + " でMAX! きわめましたわ!", "atsumeru");
   } else if (stageChanged) {
     // 見た目が変わる節目にとどいた
-    showToast(up.name + " が Lv." + up.level + "! 新しい宝石があらわれた!");
+    showToast(up.name + " が Lv." + up.level + "! 新しい宝石があらわれた!", "atsumeru");
   } else {
-    showToast(up.name + " が Lv." + up.level + " になった!");
+    showToast(up.name + " が Lv." + up.level + " になった!", "atsumeru");
   }
 
   // チュートリアルの「形のレベルを上げてみて頂戴」の最中なら、
@@ -1301,6 +1330,17 @@ function buyUpgrade(type) {
 // name には "atsumeru"・"story"・"store" のどれかが入る
 
 function showScreen(name) {
+  // ---- まず、前の画面のものを片づける ----
+  // 「あつめる」から出ていくときは、おじょうさまのセリフを預かって隠す。
+  // (あつめるのセリフが、ストーリー画面に残らないようにするため。
+  //  あつめるに戻ってきたら、続きからまた出てくる)
+  if (currentScreen === "atsumeru" && name !== "atsumeru") {
+    pauseTutorial();
+  }
+  hideToasts(); // 出しっぱなしのお知らせも消す
+
+  currentScreen = name; // いま開いている画面を覚えておく
+
   // まず全部の画面を隠して…
   mainArea.hidden = true;
   statusPanel.hidden = true;
@@ -1318,6 +1358,7 @@ function showScreen(name) {
     // "atsumeru"(宝石エリアと強化パネルのセット)
     mainArea.hidden = false;
     statusPanel.hidden = false;
+    restoreTutorial(); // 預かっていたセリフがあれば、ここでまた出す
   }
 
   // いま開いている画面のメニューボタンを光らせる
@@ -1388,7 +1429,7 @@ function unlockStory() {
   updateDisplay();
   saveGame();
   buildStoryList(); // 一覧を作り直すと、解放されたお話が読めるようになっている
-  showToast("ストーリー" + unlockedStories + "「" + stories[unlockedStories - 1].title + "」を解放した!");
+  showToast("ストーリー" + unlockedStories + "「" + stories[unlockedStories - 1].title + "」を解放した!", "story");
 }
 
 
@@ -1620,7 +1661,7 @@ function buildStoreList() {
 // 本物のお支払い機能はまだないので、いまはお知らせを出すだけ。
 // 将来ここに、決済サービス(お支払いの仕組み)との連携処理を書く
 function buyProduct(product) {
-  showToast("「" + product.name + "」のお支払い機能は準備中です");
+  showToast("「" + product.name + "」のお支払い機能は準備中です", "store");
 }
 
 
@@ -1640,7 +1681,14 @@ function openSettings() {
 // alert() はこのゲームを公開するページでは使えないことがあるので、
 // 自分でメッセージ表示を作っている
 
-function showToast(message) {
+function showToast(message, screenName) {
+  // screenName(どの画面のお知らせか)が指定されていて、
+  // いまその画面を見ていないときは、お知らせを出さない。
+  // 例:エレガントタイムのお知らせは、ストーリー画面には出てこない
+  if (screenName && screenName !== currentScreen) {
+    return;
+  }
+
   const toast = document.createElement("div");
   toast.className = "toast"; // style.css のふわっと出るアニメーションが付く
   toast.textContent = message;
@@ -1650,6 +1698,13 @@ function showToast(message) {
   setTimeout(function () {
     toast.remove();
   }, 2000);
+}
+
+// いま出ているお知らせを、すぐに全部消す(画面を切り替えるときに使う)
+function hideToasts() {
+  document.querySelectorAll(".toast").forEach(function (toast) {
+    toast.remove();
+  });
 }
 
 
@@ -1682,6 +1737,7 @@ function doReset() {
   unlockedStories = 1;
   spawnPaused = false;    // 湧きのお休み状態も解除する
   tutorialSeen = false;   // チュートリアルもまた見られるようにする
+  pausedTutorialStep = null; // 預かっていたセリフも忘れる
   firstChestDone = false; // はじめての宝箱もまた出るようにする
 
   // 3. フィーバー中だったら終わらせて、
