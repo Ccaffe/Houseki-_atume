@@ -46,10 +46,49 @@ const gemImages = {
 
 
 /* =========================================================
+   ★ ストーリーの絵さしかえコーナー ★
+
+   ストーリー画面(会話の画面)で使う「背景の絵」と「キャラクターの絵」。
+
+   ■ 絵の入れかた(3ステップ)
+     1. 絵のファイル(png や jpg)を、このフォルダーに入れる
+     2. 下の file: null の null を、"ファイル名" に書きかえる
+          (例)  forest: { name: "森", file: "forest.png" },
+     3. 保存してページを開きなおすだけ!
+
+   ■ null のままのところは、仮の絵(点線の四角や、CSSで描いた森)が出ます。
+     name: は、その仮の絵に表示される名前です(絵を入れると消えます)
+   ========================================================= */
+
+// ▼ 背景の絵(お話の「舞台」)
+const storyBackgrounds = {
+  forest:  { name: "森",         file: null },
+  mansion: { name: "森のお屋敷", file: null },
+  hall:    { name: "お屋敷の中", file: null },
+};
+
+// ▼ キャラクターの絵(画面のまん中に立つ人)
+const storyCharacters = {
+  ojosama: { name: "おじょうさま", file: null },
+};
+
+
+/* =========================================================
    ★ ストーリー編集コーナー ★
+
    ストーリーはここに書くだけで、ゲームの一覧に自動で並ぶ!
-   { title: "タイトル", text: `本文` } のかたまりを増やせば話も増える。
-   本文はバッククォート( ` )で囲むと、改行もそのまま使えて書きやすい
+   お話は「scenes(セリフのリスト)」でできていて、
+   1つのかたまり { ... } が、メッセージウィンドウ1回ぶんです。
+
+     { bg: "forest", chara: "ojosama", text: `セリフ` },
+       bg    … 背景の名前(上の storyBackgrounds に書いた名前)
+       chara … キャラクターの名前(上の storyCharacters に書いた名前)
+               null にすると、キャラクターが出ない「地の文」になる
+       text  … 表示する文章。バッククォート( ` )で囲むと改行もそのまま出る
+       name  … (省略してOK)しゃべる人の名前を、わざと別の名前にしたいとき
+
+   お話をふやしたいときは、{ title: ..., scenes: [ ... ] } のかたまりを
+   コピーして、下に足すだけ!
    ========================================================= */
 
 // ストーリー1話を解放するのに必要な宝石(ダイヤ)の数
@@ -57,35 +96,75 @@ const STORY_COST = 100;
 
 const stories = [
   {
-    title: "各地の宝石たち",
-    text: `世界のあちこちには、ふしぎな宝石が眠っているという。
+    title: "森のお屋敷",
+    scenes: [
+      { bg: "forest", chara: null, text: `深い森の、そのまた奥。
+地図にものっていない小道の先に、
+そのお屋敷はあるという。` },
 
-赤い宝石は、燃える山のふもとで。
-青い宝石は、深い湖の底で。
-だれかに見つけてもらうのを、静かに待っている。
+      { bg: "forest", chara: null, text: `木々のすきまに、あかりがひとつ。
+――だれか、住んでいるのだろうか。` },
 
-今日もこの屋敷には、どこからか宝石が集まってくる。
-――さあ、あつめよう。`,
+      { bg: "mansion", chara: null, text: `たどりついたのは、つたのからまる古いお屋敷。
+重たい扉は、なぜか少しだけ開いていた。` },
+
+      { bg: "hall", chara: "ojosama", text: `あら。……お客様だわ。
+こんな森の奥まで、よくいらしたこと。` },
+
+      { bg: "hall", chara: "ojosama", text: `わたくし、このお屋敷でひとり、
+宝石を集めておりますの。` },
+
+      { bg: "hall", chara: "ojosama", text: `この森はね、夜になると
+宝石を落としていくのですわ。
+どこから来るのかは、わたくしにも
+わからないのだけれど。` },
+
+      { bg: "hall", chara: null, text: `少女の手のひらで、
+小さな宝石がきらりと光った。` },
+
+      { bg: "hall", chara: "ojosama", text: `ひとりで集めるには、
+少しばかり多すぎて。
+……よろしければ、
+手伝ってくださらない?` },
+
+      { bg: "hall", chara: "ojosama", text: `ようこそ、宝石のお屋敷へ。
+これからよろしくお願いいたしますわ。` },
+    ],
   },
+
   {
     title: "屋敷の少女",
-    text: `この屋敷には、黒い服の少女がひとりで住んでいる。
+    scenes: [
+      { bg: "hall", chara: null, text: `この屋敷には、黒い服の少女がひとりで住んでいる。` },
 
-少女は毎晩、集まってきた宝石をひとつずつ磨く。
-「きれいになったね」
-宝石はうれしそうに、きらりと光った。
+      { bg: "hall", chara: null, text: `少女は毎晩、集まってきた宝石を
+ひとつずつ、ていねいに磨く。` },
 
-少女がなぜ宝石を集めているのか、それはまだ、だれも知らない。`,
+      { bg: "hall", chara: "ojosama", text: `きれいになったね。` },
+
+      { bg: "hall", chara: null, text: `宝石はうれしそうに、きらりと光った。
+
+少女がなぜ宝石を集めているのか、
+それはまだ、だれも知らない。` },
+    ],
   },
+
   {
     title: "星型の宝石のうわさ",
-    text: `「星のかたちをした宝石は、願いをかなえるらしい」
+    scenes: [
+      { bg: "forest", chara: null, text: `「星のかたちをした宝石は、願いをかなえるらしい」
 
-そんなうわさを、風が運んできた。
-少女は窓の外を見上げる。
-夜空の星と、手のひらの宝石が、同じ色にまたたいた。
+そんなうわさを、風が運んできた。` },
 
-――もっと、あつめてみようか。`,
+      { bg: "hall", chara: "ojosama", text: `星のかたち……。
+そんな宝石、見たことがないわ。` },
+
+      { bg: "hall", chara: null, text: `少女は窓の外を見上げる。
+夜空の星と、手のひらの宝石が、
+同じ色にまたたいた。` },
+
+      { bg: "hall", chara: "ojosama", text: `――もっと、あつめてみましょうか。` },
+    ],
   },
 ];
 
@@ -274,7 +353,17 @@ const mainArea = document.getElementById("main-area");         // 宝石が出�
 const statusPanel = document.getElementById("status-panel");   // 強化パネル
 const storyScreen = document.getElementById("story-screen");   // ストーリー画面
 const storyList = document.getElementById("story-list");       // ストーリーの一覧
-const storyOverlay = document.getElementById("story-overlay"); // ストーリーを読む画面
+// ストーリーの会話画面(ADV画面)の部品たち
+const storyScene = document.getElementById("story-scene");             // 会話画面ぜんたい
+const storyBg = document.getElementById("story-bg");                   // 背景の絵
+const storyBgLabel = document.getElementById("story-bg-label");        // 仮の背景の名前
+const storyChara = document.getElementById("story-chara");             // キャラクターの入れ物
+const storyCharaImage = document.getElementById("story-chara-image");  // キャラクターの絵
+const storyCharaDummy = document.getElementById("story-chara-dummy");  // 仮のキャラクター
+const storySpeaker = document.getElementById("story-speaker");         // 名前の札
+const storyLine = document.getElementById("story-line");               // セリフの文章
+const storyNext = document.getElementById("story-next");               // 「次へ」の▼
+const fadeScreen = document.getElementById("fade-screen");             // 暗転の黒い幕
 const storeScreen = document.getElementById("store-screen");   // ストア画面
 const storeList = document.getElementById("store-list");       // 商品の一覧
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
@@ -1257,7 +1346,7 @@ function buildStoryList() {
       card.innerHTML =
         number + ". " + stories[i].title + '<span class="story-book">📖</span>';
       card.addEventListener("click", function () {
-        openStoryReader(i);
+        startStory(i); // 暗転してから、会話画面がはじまる
       });
       storyList.appendChild(card);
     } else if (i === unlockedStories) {
@@ -1302,12 +1391,183 @@ function unlockStory() {
   showToast("ストーリー" + unlockedStories + "「" + stories[unlockedStories - 1].title + "」を解放した!");
 }
 
-// ストーリーを読む画面を開く。index は何番目のお話か(0から)
-function openStoryReader(index) {
-  document.getElementById("story-read-title").textContent =
-    "✦ " + (index + 1) + ". " + stories[index].title + " ✦";
-  document.getElementById("story-read-text").textContent = stories[index].text;
-  storyOverlay.hidden = false;
+
+/* ---------- 暗転(フェード)で画面を切り替える ---------- */
+
+const FADE_TIME = 400; // 暗転にかかる時間(ミリ秒)。style.css の 0.4s と同じ数字にする
+
+// 画面をふわっと暗くして、まっ暗なあいだに changeFunction() の中身を実行し、
+// そのあと、ふわっと明るくもどす。
+//   使い方: fadeChange(function () { ここに画面を切り替える処理を書く });
+function fadeChange(changeFunction) {
+  fadeScreen.hidden = false; // 黒い幕を出す(まだ透明)
+
+  // 少しだけ待ってから dark を付けると、CSS がちゃんと「だんだん黒く」してくれる
+  setTimeout(function () {
+    fadeScreen.classList.add("dark");
+  }, 20);
+
+  // まっ黒になったころに、画面を切り替えて、明るくもどしはじめる
+  setTimeout(function () {
+    changeFunction();
+    fadeScreen.classList.remove("dark");
+  }, FADE_TIME + 20);
+
+  // すっかり明るくなったら、黒い幕を片づける
+  setTimeout(function () {
+    fadeScreen.hidden = true;
+  }, FADE_TIME * 2 + 40);
+}
+
+
+/* ---------- ストーリーの会話画面(ADV画面) ---------- */
+
+const TYPE_SPEED = 45; // セリフを1文字ずつ出す速さ(ミリ秒)。小さいほど速い
+
+let playingStory = null; // いま読んでいるお話(読んでいないときは null)
+let sceneIndex = 0;      // いま何番目のセリフを表示中か(0から数える)
+let typingTimer = null;  // 1文字ずつ出すためのタイマー(出し終わると null)
+let typingText = "";     // いま表示中のセリフの、全部の文章
+let typingCount = 0;     // そのうち、何文字目まで出したか
+
+// お話をはじめる。index は何番目のお話か(0から)
+function startStory(index) {
+  playingStory = stories[index];
+  sceneIndex = 0;
+
+  // 暗転して、まっ暗なあいだに会話画面へ切り替える
+  fadeChange(function () {
+    storyScene.hidden = false;
+    showScene();
+  });
+}
+
+// いまの sceneIndex のセリフを、画面に表示する
+function showScene() {
+  const scene = playingStory.scenes[sceneIndex];
+
+  setStoryBackground(scene.bg);   // 背景の絵をセット
+  setStoryCharacter(scene.chara); // キャラクターの絵をセット
+  setStorySpeaker(scene);         // 名前の札をセット
+  typeLine(scene.text);           // セリフを1文字ずつ出す
+}
+
+// 背景の絵を切り替える。key は storyBackgrounds に書いた名前("forest" など)
+function setStoryBackground(key) {
+  const background = storyBackgrounds[key];
+
+  if (background && background.file) {
+    // 絵のファイルが用意されているとき
+    storyBg.style.backgroundImage = 'url("' + background.file + '")';
+    storyBgLabel.hidden = true; // 仮の名前ラベルは消す
+  } else {
+    // まだ絵がないとき:style.css で描いた「仮の森」にもどす
+    storyBg.style.backgroundImage = "";
+    storyBgLabel.hidden = false;
+    storyBgLabel.textContent = "仮の背景:" + (background ? background.name : key);
+  }
+}
+
+// キャラクターの絵を切り替える。key が null のときは、だれも出さない
+function setStoryCharacter(key) {
+  if (!key) {
+    storyChara.hidden = true; // 地の文なので、キャラクターは出さない
+    return;
+  }
+
+  const character = storyCharacters[key];
+  storyChara.hidden = false;
+
+  if (character && character.file) {
+    // 絵のファイルが用意されているとき
+    storyCharaImage.src = character.file;
+    storyCharaImage.hidden = false;
+    storyCharaDummy.hidden = true;
+  } else {
+    // まだ絵がないとき:点線のシルエット(仮のすがた)を出す
+    storyCharaImage.hidden = true;
+    storyCharaDummy.hidden = false;
+    storyCharaDummy.textContent = character ? character.name : key;
+  }
+}
+
+// メッセージウィンドウの左上に出す「名前の札」を決める。
+// scene.name があればそれを、なければキャラクターの名前を使う
+function setStorySpeaker(scene) {
+  let speakerName = "";
+
+  if (scene.name) {
+    speakerName = scene.name;
+  } else if (scene.chara && storyCharacters[scene.chara]) {
+    speakerName = storyCharacters[scene.chara].name;
+  }
+
+  if (speakerName === "") {
+    storySpeaker.hidden = true; // 地の文には名前を出さない
+  } else {
+    storySpeaker.hidden = false;
+    storySpeaker.textContent = speakerName;
+  }
+}
+
+// セリフを1文字ずつ表示する(タイプライターのような演出)
+function typeLine(text) {
+  typingText = text;
+  typingCount = 0;
+  storyLine.textContent = "";
+  storyNext.hidden = true; // 出し終わるまで▼は隠しておく
+
+  clearInterval(typingTimer); // 前のタイマーが残っていたら止める
+  typingTimer = setInterval(function () {
+    typingCount = typingCount + 1;
+    // slice(0, 3) = 文章の「はじめから3文字目まで」を取り出す
+    storyLine.textContent = typingText.slice(0, typingCount);
+
+    if (typingCount >= typingText.length) {
+      finishTyping(); // 全部出したら終わり
+    }
+  }, TYPE_SPEED);
+}
+
+// 1文字ずつの表示をやめて、セリフを一気に全部出す
+function finishTyping() {
+  clearInterval(typingTimer);
+  typingTimer = null;
+  storyLine.textContent = typingText;
+  storyNext.hidden = false; // 「タップで次へ」の▼を出す
+}
+
+// 会話画面をタップしたとき
+function tapStoryScene() {
+  if (playingStory === null) {
+    return; // お話を読んでいないときは何もしない
+  }
+
+  if (typingTimer !== null) {
+    finishTyping(); // まだ文字が出ている途中なら、まず全部出す
+    return;
+  }
+
+  sceneIndex = sceneIndex + 1; // 次のセリフへ
+
+  if (sceneIndex >= playingStory.scenes.length) {
+    endStory(); // 最後まで読んだので終わり
+    return;
+  }
+
+  showScene();
+}
+
+// お話を終わって、ストーリー一覧にもどる(途中でやめたときも同じ)
+function endStory() {
+  clearInterval(typingTimer);
+  typingTimer = null;
+  playingStory = null;
+
+  fadeChange(function () {
+    storyScene.hidden = true;
+    showScreen("story"); // 一覧の画面にもどす
+  });
 }
 
 
@@ -1472,15 +1732,22 @@ document.getElementById("menu-atsumeru").addEventListener("click", function () {
   showScreen("atsumeru");
 });
 document.getElementById("menu-story").addEventListener("click", function () {
-  showScreen("story");
+  fadeChange(function () {
+    showScreen("story");
+  });
 });
 document.getElementById("menu-store").addEventListener("click", function () {
   showScreen("store");
 });
 
-// ストーリーを読む画面の「とじる」
-document.getElementById("story-close").addEventListener("click", function () {
-  storyOverlay.hidden = true;
+// ストーリーの会話画面:どこをタップしても次のセリフに進む
+storyScene.addEventListener("click", tapStoryScene);
+
+// 会話画面の右上「✕」:途中でもストーリーをやめられる
+document.getElementById("story-quit").addEventListener("click", function (event) {
+  // stopPropagation = このクリックを、うしろの「次へ進む」に伝えない
+  event.stopPropagation();
+  endStory();
 });
 
 

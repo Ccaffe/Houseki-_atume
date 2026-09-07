@@ -363,16 +363,40 @@
     </div>
 
     <!-- ===============================
-         ⑥-B ストーリーを読む画面
-         一覧でストーリーをタップすると出てくる
+         ⑥-B ストーリーの会話画面(いわゆるADV画面)
+         ストーリー一覧でお話をタップすると、フェードで暗転してこの画面になる。
+         「背景の絵 + キャラクターの絵 + メッセージウィンドウ」の3階建て。
+         画面のどこかをタップすると、次のセリフに進む。
+
+         ★ 絵の差し替えは script.js の
+           「★ ストーリーの絵さしかえコーナー ★」でファイル名を書くだけ!
+           絵をまだ用意していないところは、仮の絵(点線の四角など)が出る
          =============================== -->
-    <div class="overlay" id="story-overlay" hidden>
-      <div class="panel">
-        <h2 class="panel-title" id="story-read-title">タイトル</h2>
-        <p class="story-text" id="story-read-text">本文</p>
-        <button class="close-button" id="story-close">とじる</button>
+    <section class="story-scene" id="story-scene" hidden>
+
+      <!-- ① 背景の絵(いちばん後ろ)。絵がないときは仮の森が出る -->
+      <div class="story-bg" id="story-bg">
+        <span class="story-bg-label" id="story-bg-label">背景</span>
       </div>
-    </div>
+
+      <!-- ② キャラクターの絵(背景の手前に立つ) -->
+      <div class="story-chara" id="story-chara" hidden>
+        <img class="story-chara-image" id="story-chara-image" alt="" hidden>
+        <div class="story-chara-dummy" id="story-chara-dummy">キャラクター</div>
+      </div>
+
+      <!-- ③ 右上の「とじる」ボタン(途中でやめたいとき用) -->
+      <button class="story-quit" id="story-quit" aria-label="ストーリーをとじる">✕</button>
+
+      <!-- ④ メッセージウィンドウ(セリフを出す窓。いちばん手前) -->
+      <div class="story-window">
+        <!-- しゃべっている人の名前。地の文のときは隠れる -->
+        <div class="story-speaker" id="story-speaker" hidden>名前</div>
+        <p class="story-line" id="story-line"></p>
+        <!-- 「次へ進めるよ」の合図の▼ -->
+        <span class="story-next" id="story-next" hidden>▼</span>
+      </div>
+    </section>
 
     <!-- ===============================
          ⑥-C チュートリアルの吹き出し
@@ -402,6 +426,13 @@
         <button class="close-button" id="reset-no">いいえ</button>
       </div>
     </div>
+
+    <!-- ===============================
+         ⑧ 暗転(フェード)の幕
+         画面を切り替えるときに、この黒い幕がふわっと出て、ふわっと消える。
+         ふだんは hidden で隠れている(script.js の fadeChange が使う)
+         =============================== -->
+    <div class="fade-screen" id="fade-screen" hidden></div>
 
   </div>
 

@@ -461,15 +461,184 @@ button.story-card:active {
   color: #4a4a4a;
 }
 
-/* ストーリー本文(読む画面の中)。
-   white-space: pre-line = 打ち込んだ改行をそのまま表示する */
-.story-text {
-  white-space: pre-line;
+/* =========================================================
+   ストーリーの会話画面(ADV画面)
+   「背景の絵 → キャラクターの絵 → メッセージウィンドウ」の
+   3枚を重ねて作っている。後ろから順に z-index(重なりの番号)が大きくなる
+   ========================================================= */
+
+/* 画面ぜんたいをおおう入れ物。ここをタップすると次のセリフに進む */
+.story-scene {
+  position: absolute;
+  inset: 0;      /* ゲーム画面いっぱいに広げる */
+  z-index: 20;   /* ヘッダーやメニューより手前に出す */
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* ---- ① 背景の絵 ---- */
+/* 絵のファイルを用意すると script.js が background-image で貼る。
+   まだ絵がないときは、下のグラデーションで描いた「仮の森」が見える */
+.story-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;     /* 画面いっぱいに広げる(はみ出た分は切る) */
+  background-position: center;
+  background-repeat: no-repeat;
+  /* ↓ ここから下は「仮の森」の絵(絵を入れたら上から隠れる) */
+  background-color: #0e1a12;
+  background-image:
+    radial-gradient(circle at 22% 16%, rgba(150, 210, 160, 0.18) 0 18%, transparent 55%),
+    radial-gradient(circle at 76% 10%, rgba(150, 210, 160, 0.14) 0 16%, transparent 55%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.32) 0 16px, transparent 16px 78px),
+    linear-gradient(180deg, #3d6047 0%, #1e3527 55%, #0d1a12 100%);
+}
+
+/* 「いまどの背景か」がわかる仮のラベル。
+   本物の絵を入れると script.js が自動で消す */
+.story-bg-label {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+}
+
+/* ---- ② キャラクターの絵 ---- */
+/* メッセージウィンドウの上に、まん中で立っているように置く */
+.story-chara {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;          /* メッセージウィンドウの高さのぶん、上にずらす */
+  translate: -50% 0;      /* 自分の幅の半分だけ左に動かして、ぴったり中央に */
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  /* 出てくるときにふわっと表示する */
+  animation: chara-in 0.4s ease;
+}
+
+@keyframes chara-in {
+  from { opacity: 0; translate: -50% 14px; }
+  to   { opacity: 1; translate: -50% 0; }
+}
+
+/* 本物のキャラクター画像(縦の大きさで合わせる) */
+.story-chara-image {
+  height: 46vh;
+  max-height: 400px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+
+/* 絵がまだないときの仮のすがた(点線のシルエット) */
+.story-chara-dummy {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 150px;
+  height: 240px;
+  padding-bottom: 14px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border: 2px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 75px 75px 18px 18px; /* 頭は丸く、足元は四角く */
+}
+
+/* ---- ③ 右上の「とじる」ボタン ---- */
+.story-quit {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  font-family: inherit;
+  font-size: 18px;
+  color: #f0e2c8;
+  background: rgba(20, 12, 10, 0.6);
+  border: 2px solid #8a6d45;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.story-quit:active {
+  transform: scale(0.92);
+}
+
+/* ---- ④ メッセージウィンドウ(セリフの窓) ---- */
+.story-window {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  min-height: 128px;
+  padding: 18px 18px 22px;
+  background: linear-gradient(180deg, rgba(38, 25, 18, 0.94) 0%, rgba(18, 11, 8, 0.96) 100%);
+  border: 3px solid #8a6d45;
+  outline: 1px solid #3a2b1c;
+  border-radius: 12px;
+}
+
+/* しゃべっている人の名前(窓の左上に、はみ出して乗っている札) */
+.story-speaker {
+  position: absolute;
+  top: -17px;
+  left: 14px;
+  padding: 4px 14px;
   font-size: 15px;
-  line-height: 2;
-  max-height: 55vh;   /* 長いお話は本文だけスクロール */
-  overflow-y: auto;
-  scrollbar-width: thin;
+  color: #f5e8cf;
+  background: linear-gradient(180deg, #5a4430 0%, #3a2a1c 100%);
+  border: 2px solid #a08050;
+  border-radius: 8px;
+}
+
+/* セリフの本文。white-space: pre-line = 打ち込んだ改行をそのまま表示する */
+.story-line {
+  white-space: pre-line;
+  font-size: 16px;
+  line-height: 1.9;
+  color: #f0e6d4;
+  min-height: 60px;
+}
+
+/* 「タップで次へ進めるよ」の合図の▼(ゆっくり点滅させる) */
+.story-next {
+  position: absolute;
+  right: 16px;
+  bottom: 6px;
+  font-size: 14px;
+  color: #f0d8a8;
+  animation: next-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes next-blink {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 1; }
+}
+
+/* =========================================================
+   暗転(フェード)の幕
+   ふだんは透明(opacity: 0)で、script.js が dark クラスを付けると
+   0.4秒かけてまっ黒になる。外すと、また0.4秒かけて明るくもどる
+   ========================================================= */
+.fade-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 30;              /* いちばん手前(全部の上をおおう) */
+  background-color: #000;
+  opacity: 0;
+  transition: opacity 0.4s ease; /* 色の変化に0.4秒かける = ふわっと */
+}
+
+/* まっ黒の状態 */
+.fade-screen.dark {
+  opacity: 1;
 }
 
 /* ---------- ③-C ストア画面 ---------- */
