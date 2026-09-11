@@ -1194,3 +1194,33 @@ button.story-card:active {
   background: linear-gradient(180deg, #ffe9b8 0%, #d9b878 100%);
   border-color: #ffe9b8;
 }
+
+/* ---------- 「!」のしるし(受け取っていないごほうびの合図) ---------- */
+
+/* メニューの「やかた」と、実績のタブに付く小さな赤いしるし */
+.menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+  background: #c0392b;
+  border-radius: 50%;    /* まん丸にする */
+  vertical-align: top;
+}
+
+/* ---------- 実績の「うけとる」ボタン ---------- */
+
+/* 受け取れる実績のカードは、金色のふちで光らせて気づきやすくする */
+.achieve-card.can-claim {
+  border-color: #ffe9b8;
+  animation: prestige-glow 1.6s ease-in-out infinite;
+}
+
+.achieve-claim {
+  font-size: 15px;
+}

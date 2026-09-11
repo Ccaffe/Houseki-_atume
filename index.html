@@ -286,11 +286,13 @@
     <section class="mansion-screen" id="mansion-screen" hidden>
       <h2 class="screen-heading">✦ やかた ✦</h2>
 
-      <!-- タブ(3つのボタン) -->
-      <div class="tab-row">
-        <button class="tab-button" id="tab-treasure">宝物庫</button>
-        <button class="tab-button" id="tab-zukan">図鑑</button>
-        <button class="tab-button" id="tab-achieve">実績</button>
+      <!-- タブ(3つのボタン)。
+           宝物庫は「はじめてお屋敷を継ぐ」まで、図鑑は「宝石図鑑」を買うまで
+           script.js が隠しておく(最初は実績だけが見える) -->
+      <div class="tab-row" id="tab-row">
+        <button class="tab-button" id="tab-treasure" hidden>宝物庫</button>
+        <button class="tab-button" id="tab-zukan" hidden>図鑑</button>
+        <button class="tab-button" id="tab-achieve">実績<span class="menu-badge" id="achieve-badge" hidden>!</span></button>
       </div>
 
       <!-- タブ①:宝物庫 -->
@@ -382,8 +384,9 @@
          =============================== -->
     <nav class="menu">
       <button class="menu-button" id="menu-atsumeru">あつめる</button>
-      <button class="menu-button" id="menu-story">ストーリー</button>
-      <button class="menu-button" id="menu-mansion">やかた</button>
+      <!-- ストーリーは「おまけ」なので、6巡クリアするまで script.js が隠している -->
+      <button class="menu-button" id="menu-story" hidden>ストーリー</button>
+      <button class="menu-button" id="menu-mansion">やかた<span class="menu-badge" id="mansion-badge" hidden>!</span></button>
       <button class="menu-button" id="menu-store">ストア</button>
       <button class="menu-button" id="menu-settings">せってい</button>
     </nav>
@@ -410,6 +413,7 @@
           <div class="stats-row"><span>持っている家宝</span><span id="stat-heirlooms">0</span></div>
           <div class="stats-row"><span>図鑑の種類</span><span id="stat-zukan">0</span></div>
           <div class="stats-row"><span>達成した実績</span><span id="stat-achieve">0</span></div>
+          <div class="stats-row"><span>ごほうびの受け取り待ち</span><span id="stat-claim">0</span></div>
         </div>
 
         <button class="reset-button" id="reset-button">データをリセット</button>

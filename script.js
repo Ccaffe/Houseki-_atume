@@ -339,6 +339,12 @@ const tutorialLines = {
   prestigeDone: `おめでとう、新しい当主さま。
 家宝は「やかた」の宝物庫で
 使えますわ。`,
+
+  // --- 6巡クリアして、おまけのストーリーが解放されたとき ---
+  storyUnlocked: `6巡、ようやりましたわね。
+おまけに、このお屋敷の
+のんびりしたお話を
+お見せしましょう。`,
 };
 
 
@@ -363,6 +369,7 @@ let generation = 1;           // いま何代目か(継ぐたびに1ずつ増え
 let prestigeAsked = false;    // 「継げるようになった」案内をもう出したか
 let zukanFound = [];          // 図鑑で見つけた組み合わせ("形の段階-色の段階")の配列
 let unlockedAchievements = []; // 達成ずみの実績の id の配列
+let claimedAchievements = [];  // ごほうびをもう受け取った実績の id の配列
 let chestOpened = 0;          // 宝箱をあけた回数(実績用)
 let ratCaught = 0;            // ネズミから宝石を取り返した回数(実績用)
 
@@ -420,6 +427,10 @@ const RANGE_RADIUS_PER_LEVEL = 6; // 範囲レベル1つごとに、半径が何
 const GEM_HIT_PADDING = 6;        // 宝石まわりの、押しやすくするための小さな余白
 
 // ---- お屋敷を継ぐ(プレステージ)の設定 ----
+// ストーリーは「ぜんぶ遊びきった人へのおまけ」なので、
+// 6巡クリア(=6回お屋敷を継いで7代目になる)まで、メニューに出てこない。
+// ここの数字を変えると、解放のタイミングを早くしたり遅くしたりできる
+const STORY_UNLOCK_GENERATION = 7;
 const PRESTIGE_NEED_LEVEL = 10;     // 5つの強化がこのレベル以上になると継げる
 const HEIRLOOM_PER_USER_LEVEL = 10; // User Lv 何ごとに家宝を1つもらえるか
 
@@ -530,7 +541,8 @@ function getGemMultiplier() {
   if (hasTreasure("zukan")) {
     multiplier += zukanFound.length * ZUKAN_BONUS_PER_CELL;
   }
-  multiplier += unlockedAchievements.length * ACHIEVEMENT_BONUS;
+  // 実績はごほうびを「受け取った」ぶんだけボーナスになる
+  multiplier += claimedAchievements.length * ACHIEVEMENT_BONUS;
   return multiplier;
 }
 
@@ -635,6 +647,18 @@ function updateDisplay() {
 
   updateHeaderBadges();  // ヘッダーの「◯代目」「家宝の数」
   updatePrestigeRow();   // パネルいちばん下の「お屋敷を継ぐ」の行
+  updateMenuButtons();   // 下のメニュー(ストーリーの出しわけ・「!」のしるし)
+}
+
+// 下のメニューの出しわけ。
+//  ・ストーリー … 6巡クリアするまで隠しておく(最初はボタンが4つ)
+//  ・やかた     … 受け取っていないごほうびがあると「!」が付く
+function updateMenuButtons() {
+  document.getElementById("menu-story").hidden = generation < STORY_UNLOCK_GENERATION;
+
+  const waiting = countClaimable();
+  document.getElementById("mansion-badge").hidden = waiting === 0;
+  document.getElementById("achieve-badge").hidden = waiting === 0;
 }
 
 // ヘッダーの小さな表示。1代目・家宝0のときは隠しておいて、
@@ -711,6 +735,7 @@ function saveGame() {
       prestigeAsked: prestigeAsked,
       zukanFound: zukanFound,
       unlockedAchievements: unlockedAchievements,
+      claimedAchievements: claimedAchievements,
       chestOpened: chestOpened,
       ratCaught: ratCaught,
     };
@@ -754,6 +779,9 @@ function loadGame() {
     prestigeAsked = data.prestigeAsked || false;
     zukanFound = data.zukanFound || [];
     unlockedAchievements = data.unlockedAchievements || [];
+    // 前のバージョンでは達成すると自動でごほうびが出ていたので、
+    // 受け取りずみの記録がない古いデータは「もう受け取った」ことにする
+    claimedAchievements = data.claimedAchievements || data.unlockedAchievements || [];
     chestOpened = data.chestOpened || 0;
     ratCaught = data.ratCaught || 0;
   } catch (e) {
@@ -1279,7 +1307,8 @@ tutorialOkButton.addEventListener("click", function () {
     finishTutorial(); // これでチュートリアルはおしまい!
   } else if (tutorialStep === "chestThanks") {
     hideTutorial();
-  } else if (tutorialStep === "prestigeReady" || tutorialStep === "prestigeDone") {
+  } else if (tutorialStep === "prestigeReady" || tutorialStep === "prestigeDone" ||
+             tutorialStep === "storyUnlocked") {
     hideTutorial(); // 継承の案内・お祝いは、OKを押すと閉じるだけ
   }
 });
@@ -1935,6 +1964,7 @@ function openSettings() {
   document.getElementById("stat-zukan").textContent = zukanFound.length + " / 100";
   document.getElementById("stat-achieve").textContent =
     unlockedAchievements.length + " / " + achievements.length;
+  document.getElementById("stat-claim").textContent = countClaimable() + " こ";
 
   // hidden を外すと画面に現れる
   settingsOverlay.hidden = false;
@@ -2000,6 +2030,7 @@ function doReset() {
   prestigeAsked = false;
   zukanFound = [];
   unlockedAchievements = [];
+  claimedAchievements = [];
   chestOpened = 0;
   ratCaught = 0;
 
@@ -2034,8 +2065,27 @@ function doReset() {
 
 let mansionTab = "treasure"; // いま開いているタブ("treasure"・"zukan"・"achieve")
 
+// どのタブを見せるかを決める。
+//  ・宝物庫 … はじめてお屋敷を継ぐ(2代目になる)まで隠しておく
+//  ・図鑑   … 宝物庫で「宝石図鑑」を買うまで隠しておく
+// 最初は「実績」のタブだけが、横いっぱいに出ている
+function updateMansionTabs() {
+  document.getElementById("tab-treasure").hidden = generation < 2;
+  document.getElementById("tab-zukan").hidden = !hasTreasure("zukan");
+}
+
 // タブを切り替える。name には "treasure"・"zukan"・"achieve" のどれかが入る
 function showMansionTab(name) {
+  updateMansionTabs(); // まず、いまどのタブが使えるかを決める
+
+  // まだ開いていないタブを開こうとしたときは、実績のタブにもどす
+  if (name === "treasure" && document.getElementById("tab-treasure").hidden) {
+    name = "achieve";
+  }
+  if (name === "zukan" && document.getElementById("tab-zukan").hidden) {
+    name = "achieve";
+  }
+
   mansionTab = name;
 
   // 3つの中身を、選ばれたものだけ表示する
@@ -2154,6 +2204,7 @@ function buyTreasure(item) {
   updateDisplay();
   saveGame();
   buildTreasureList(); // 一覧を作り直すと「所持」に変わる
+  updateMansionTabs(); // 「宝石図鑑」を買ったら、図鑑のタブがその場で出てくる
   showToast("「" + item.name + "」を手に入れた!");
   checkAchievements();
 }
@@ -2219,8 +2270,21 @@ function buildZukan() {
 
 /* ---------- タブ③:実績(トロフィー) ---------- */
 
+// まだ受け取っていないごほうびが何こあるか数える
+function countClaimable() {
+  let count = 0;
+  for (let i = 0; i < unlockedAchievements.length; i++) {
+    if (claimedAchievements.indexOf(unlockedAchievements[i]) === -1) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 // 実績の条件を満たしていないか、ぜんぶ調べる。
 // 宝石を集めたとき・強化したとき・継いだときなどに呼ばれる。
+// ※ ここでは「達成した」と記録するだけ。ごほうびの宝石は、
+//   やかたの実績タブで「うけとる」ボタンを押したときにもらえる
 // quiet に true を入れると、1つずつのお知らせを出さずにまとめて数える
 // (ゲームを開いた瞬間に、お知らせがたくさん出ないようにするため)
 function checkAchievements(quiet) {
@@ -2237,11 +2301,10 @@ function checkAchievements(quiet) {
     // check() が true になったら達成!
     if (achievement.check()) {
       unlockedAchievements.push(achievement.id);
-      gemCount += achievement.reward;
       count += 1;
       if (quiet !== true) {
         playUpgradeSound();
-        showToast("実績「" + achievement.name + "」達成! 💎+" + achievement.reward);
+        showToast("実績「" + achievement.name + "」達成! やかたで受けとれますわ");
       }
     }
   }
@@ -2250,27 +2313,52 @@ function checkAchievements(quiet) {
     updateDisplay();
     saveGame();
     if (quiet === true) {
-      showToast("実績を " + count + "個 達成した!");
+      showToast("実績を " + count + "個 達成! やかたで受けとれますわ");
     }
   }
 }
 
+// 「うけとる」ボタンを押したときの処理。ごほうびの宝石をもらう
+function claimAchievement(achievement) {
+  // 達成していない・もう受け取っているときは何もしない
+  if (unlockedAchievements.indexOf(achievement.id) === -1 ||
+      claimedAchievements.indexOf(achievement.id) !== -1) {
+    return;
+  }
+
+  claimedAchievements.push(achievement.id); // 受け取ったと覚えておく
+  gemCount += achievement.reward;
+
+  playUpgradeSound();
+  updateDisplay();
+  saveGame();
+  buildAchieveList(); // 一覧を作り直すと「達成」の表示に変わる
+  showToast("「" + achievement.name + "」のごほうび 💎+" + achievement.reward + "!");
+}
+
 // 実績の一覧を作る
 function buildAchieveList() {
-  document.getElementById("achieve-note").textContent =
-    "達成 " + unlockedAchievements.length + " / " + achievements.length +
-    "(1つにつき獲得数 +2%)";
+  const waiting = countClaimable();
+  let note = "達成 " + unlockedAchievements.length + " / " + achievements.length +
+    "(ごほうびを受け取ると獲得数 +2%)";
+  if (waiting > 0) {
+    note += " ／ 受け取り待ち " + waiting + "こ!";
+  }
+  document.getElementById("achieve-note").textContent = note;
 
   achieveList.innerHTML = "";
 
   for (let i = 0; i < achievements.length; i++) {
     const achievement = achievements[i];
     const done = unlockedAchievements.indexOf(achievement.id) !== -1;
+    const claimed = claimedAchievements.indexOf(achievement.id) !== -1;
 
     const card = document.createElement("div");
     card.className = "product-card achieve-card";
     if (!done) {
       card.classList.add("not-yet"); // まだのものは薄くする
+    } else if (!claimed) {
+      card.classList.add("can-claim"); // 受け取れるものは金色に光らせる
     }
 
     const icon = document.createElement("div");
@@ -2288,13 +2376,26 @@ function buildAchieveList() {
     info.appendChild(name);
     info.appendChild(description);
 
-    const state = document.createElement("div");
-    state.className = "achieve-state";
-    state.textContent = done ? "達成" : "…";
-
     card.appendChild(icon);
     card.appendChild(info);
-    card.appendChild(state);
+
+    if (done && !claimed) {
+      // 達成したけど、まだごほうびを受け取っていない → ボタンを出す
+      const claimButton = document.createElement("button");
+      claimButton.className = "product-buy achieve-claim";
+      claimButton.textContent = "うけとる";
+      claimButton.addEventListener("click", function () {
+        claimAchievement(achievement);
+      });
+      card.appendChild(claimButton);
+    } else {
+      // 受け取りずみ →「達成」/ まだ達成していない →「…」
+      const state = document.createElement("div");
+      state.className = "achieve-state";
+      state.textContent = claimed ? "達成" : "…";
+      card.appendChild(state);
+    }
+
     achieveList.appendChild(card);
   }
 }
@@ -2367,7 +2468,13 @@ function doPrestige() {
   playFeverSound();
   showToast(generation + "代目になった! 家宝 🏺+" + reward);
   checkAchievements();
-  showTutorialStep("prestigeDone");
+
+  // ちょうど6巡クリアしたときは、おまけのストーリーが解放される!
+  if (generation === STORY_UNLOCK_GENERATION) {
+    showTutorialStep("storyUnlocked");
+  } else {
+    showTutorialStep("prestigeDone");
+  }
 
   // 7. 宝箱の予約をとりなおす(継ぐ前の予約が残らないように)
   if (firstChestDone) {
