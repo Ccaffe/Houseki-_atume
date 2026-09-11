@@ -1164,17 +1164,23 @@ button.story-card:active {
   z-index: 5;
 }
 
-/* 🐭 ネズミ:画面のはしから、反対のはしまで走って逃げる。
-   走る距離(--run-distance)と走る時間は script.js が決める */
-.rat {
-  animation-name: rat-run;
+/* 🐈‍⬛ 黒猫:画面のはしから、反対のはしまで音もなく歩いていく。
+   歩く距離(--run-distance)と時間は script.js が決める。
+   むらさき色の光をまとわせて、ミステリアスな雰囲気にしている */
+.cat {
+  filter: drop-shadow(0 0 14px rgba(190, 150, 255, 0.85));
+  animation-name: cat-walk;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
 
-@keyframes rat-run {
-  from { transform: translateX(0) scaleX(-1); }
-  to   { transform: translateX(var(--run-distance, 400px)) scaleX(-1); }
+@keyframes cat-walk {
+  /* scaleX(-1) で左右を反転させて、進む向きに顔を向ける。
+     ふっと現れて、最後はまた闇にとけるように薄くなる */
+  0%   { transform: translateX(0) scaleX(-1); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateX(var(--run-distance, 400px)) scaleX(-1); opacity: 0; }
 }
 
 /* 🧺 行商人:その場でぴょこぴょこ待っている */
@@ -1223,4 +1229,10 @@ button.story-card:active {
 
 .achieve-claim {
   font-size: 15px;
+}
+
+/* ---------- 宝物庫の右上の「家宝の数」 ---------- */
+.treasure-top {
+  display: flex;
+  justify-content: flex-end; /* 中身を右はしに寄せる */
 }

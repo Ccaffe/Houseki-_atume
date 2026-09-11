@@ -22,15 +22,12 @@
          ① ヘッダー(いちばん上のバー)
          =============================== -->
     <header class="header">
-      <!-- 左側:ユーザーのレベルと、いま何代目か(2代目からだけ表示される) -->
-      <div class="user-level">
-        User Lv. <span id="user-level">1</span>
-        <span class="gen-badge" id="gen-badge" hidden></span>
-      </div>
-      <!-- 右側:持っている家宝の数(0のときは隠れる)と、集めた宝石の数。
-           数字の部分は script.js が書き換える -->
+      <!-- 左側:ユーザーのレベル表示 -->
+      <div class="user-level">User Lv. <span id="user-level">1</span></div>
+      <!-- 右側:集めた宝石の数。数字の部分は script.js が書き換える。
+           ※ 何代目か・家宝の数は、ここには出さずに
+             「やかた」の宝物庫と、せっていの統計で見られるようにしている -->
       <div class="gem-counter">
-        <span class="heirloom-badge" id="heirloom-badge" hidden>🏺 <span id="heirloom-count">0</span></span>
         あつめた宝石 <span class="gem-icon">💎</span> <span id="gem-count">0</span>
       </div>
     </header>
@@ -297,6 +294,10 @@
 
       <!-- タブ①:宝物庫 -->
       <div class="tab-body" id="tab-body-treasure" hidden>
+        <!-- 右上に、いま持っている家宝の数を出す -->
+        <div class="treasure-top">
+          <span class="heirloom-badge" id="treasure-heirlooms">🏺 0</span>
+        </div>
         <p class="mansion-note" id="treasure-note"></p>
         <div class="store-list" id="treasure-list"></div>
       </div>

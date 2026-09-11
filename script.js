@@ -262,8 +262,8 @@ const achievements = [
   { id: "chest10", icon: "🎁", name: "宝箱あつめ", detail: "宝箱を10回あける", reward: 400,
     check: function () { return chestOpened >= 10; } },
 
-  { id: "rat", icon: "🐭", name: "どろぼう退治", detail: "ネズミから宝石を取り返す", reward: 200,
-    check: function () { return ratCaught >= 1; } },
+  { id: "cat", icon: "🐈‍⬛", name: "黒猫とのやくそく", detail: "黒猫から宝石を取り返す", reward: 200,
+    check: function () { return catCaught >= 1; } },
 
   { id: "story3", icon: "📚", name: "物語のつづき", detail: "ストーリーを3話まで解放する", reward: 300,
     check: function () { return unlockedStories >= 3; } },
@@ -371,7 +371,7 @@ let zukanFound = [];          // 図鑑で見つけた組み合わせ("形の段
 let unlockedAchievements = []; // 達成ずみの実績の id の配列
 let claimedAchievements = [];  // ごほうびをもう受け取った実績の id の配列
 let chestOpened = 0;          // 宝箱をあけた回数(実績用)
-let ratCaught = 0;            // ネズミから宝石を取り返した回数(実績用)
+let catCaught = 0;            // 黒猫から宝石を取り返した回数(実績用)
 
 // 「const」は「変わらない値」を作る書き方
 const MAX_LEVEL = 30;    // 強化レベルの上限(ここまで上げられる)
@@ -446,12 +446,12 @@ const ACHIEVEMENT_BONUS = 0.02;     // 実績:1つ達成するごとに獲得数
 const SERVANT_INTERVAL = 6000;      // 使用人が宝石を拾う間隔(ミリ秒)
 const SERVANT_FAST_INTERVAL = 3000; // 「使用人の手際」を買ったあとの間隔
 
-// ---- ランダムイベント(ネズミ・行商人)の設定 ----
+// ---- ランダムイベント(黒猫・行商人)の設定 ----
 const EVENT_UNLOCK_LEVEL = 5; // このユーザーレベルからイベントが起こり始める
 const EVENT_WAIT_MIN = 90;    // 次のイベントまでの最短(秒)
 const EVENT_WAIT_MAX = 180;   // 最長(秒)
-const RAT_STEAL = 5;          // ネズミが1回にくわえていく宝石の数(画面の宝石)
-const RAT_LIFETIME = 7;       // ネズミが逃げ切るまでの時間(秒)
+const CAT_STEAL = 5;          // 黒猫が1回にくわえていく宝石の数(画面の宝石)
+const CAT_LIFETIME = 8;       // 黒猫が闇にとけて消えるまでの時間(秒)
 const PEDDLER_LIFETIME = 12;  // 行商人が帰ってしまうまでの時間(秒)
 const PEDDLER_GEMS_PER_LEVEL = 30; // 行商人がくれる宝石(User Lv 1つあたり)
 
@@ -645,7 +645,6 @@ function updateDisplay() {
   updateOneUpgrade("speed");
   updateOneUpgrade("range");
 
-  updateHeaderBadges();  // ヘッダーの「◯代目」「家宝の数」
   updatePrestigeRow();   // パネルいちばん下の「お屋敷を継ぐ」の行
   updateMenuButtons();   // 下のメニュー(ストーリーの出しわけ・「!」のしるし)
 }
@@ -659,18 +658,6 @@ function updateMenuButtons() {
   const waiting = countClaimable();
   document.getElementById("mansion-badge").hidden = waiting === 0;
   document.getElementById("achieve-badge").hidden = waiting === 0;
-}
-
-// ヘッダーの小さな表示。1代目・家宝0のときは隠しておいて、
-// 継いだあとから出てくる(最初の人の画面をごちゃごちゃさせないため)
-function updateHeaderBadges() {
-  const genBadge = document.getElementById("gen-badge");
-  genBadge.textContent = "/ " + generation + "代目";
-  genBadge.hidden = generation <= 1;
-
-  const heirloomBadge = document.getElementById("heirloom-badge");
-  document.getElementById("heirloom-count").textContent = heirlooms;
-  heirloomBadge.hidden = heirlooms <= 0 && generation <= 1;
 }
 
 // 「お屋敷を継ぐ」の行の見た目を新しくする。
@@ -737,12 +724,22 @@ function saveGame() {
       unlockedAchievements: unlockedAchievements,
       claimedAchievements: claimedAchievements,
       chestOpened: chestOpened,
-      ratCaught: ratCaught,
+      catCaught: catCaught,
     };
     localStorage.setItem("housekiSave", JSON.stringify(data));
   } catch (e) {
     // 保存できない環境では何もしない(ゲームはそのまま遊べる)
   }
+}
+
+// 配列の中の古い id を、新しい id に置きかえる小さな関数。
+// (実績「ネズミ」を「黒猫」に変えたときのように、名前を変えたときに使う)
+function renameOldId(list, oldId, newId) {
+  const place = list.indexOf(oldId);
+  if (place !== -1) {
+    list[place] = newId;
+  }
+  return list;
 }
 
 function loadGame() {
@@ -783,7 +780,11 @@ function loadGame() {
     // 受け取りずみの記録がない古いデータは「もう受け取った」ことにする
     claimedAchievements = data.claimedAchievements || data.unlockedAchievements || [];
     chestOpened = data.chestOpened || 0;
-    ratCaught = data.ratCaught || 0;
+    // 前のバージョンでは「ネズミ」だったので、古い記録も引きついで読む
+    catCaught = data.catCaught || data.ratCaught || 0;
+    // 実績の id も "rat" から "cat" に変わったので、古い記録を置きかえる
+    unlockedAchievements = renameOldId(unlockedAchievements, "rat", "cat");
+    claimedAchievements = renameOldId(claimedAchievements, "rat", "cat");
   } catch (e) {
     // 読み込めない環境では最初からスタート
   }
@@ -2032,7 +2033,7 @@ function doReset() {
   unlockedAchievements = [];
   claimedAchievements = [];
   chestOpened = 0;
-  ratCaught = 0;
+  catCaught = 0;
 
   // 3. フィーバー中だったら終わらせて、
   //    画面に残っている宝石と宝箱をぜんぶ消す
@@ -2113,12 +2114,15 @@ function showMansionTab(name) {
 
 // 品物の一覧を作る(いちばん上の「宝物庫コーナー」の treasureItems から)
 function buildTreasureList() {
+  // 右上に、いま持っている家宝の数を出す
+  document.getElementById("treasure-heirlooms").textContent = "🏺 " + heirlooms;
+
   // 上の説明文
   const note = document.getElementById("treasure-note");
   if (generation <= 1) {
     note.textContent = "お屋敷を継ぐ(プレステージ)と家宝がもらえて、ここで永久に消えない品が買えます。";
   } else {
-    note.textContent = "持っている家宝 🏺 " + heirlooms + " / 買った品はお屋敷を継いでも消えません。";
+    note.textContent = "買った品は、お屋敷を継いでも消えません。";
   }
 
   treasureList.innerHTML = ""; // まず一覧を空っぽにして、作り直す
@@ -2540,7 +2544,7 @@ function showServantMark(gem) {
 
 
 /* =========================================================
-   ランダムイベント(ネズミ・行商人)
+   ランダムイベント(黒猫・行商人)
    ユーザーLv5 から、ときどきお客さん(?)がやってくる
    ========================================================= */
 
@@ -2562,20 +2566,22 @@ function startRandomEvent() {
     return;
   }
 
-  // 半分の確率でネズミ、半分の確率で行商人
+  // 半分の確率で黒猫、半分の確率で行商人
   if (Math.random() < 0.5) {
-    spawnRat();
+    spawnCat();
   } else {
     spawnPeddler();
   }
 }
 
-// 🐭 ネズミ:画面の宝石をくわえて走って逃げる。タップすると取り返せる!
-function spawnRat() {
+// 🐈‍⬛ 黒猫:お屋敷に住みついた、気まぐれな黒猫。
+// 宝石をくわえて、音もなく夜の闇を横切っていく。
+// 消えてしまう前にタップして声をかけると、宝石を置いていってくれる
+function spawnCat() {
   // まず、画面にある宝石を何個かくわえていく(持っている宝石は減らない)
   const gems = mainArea.querySelectorAll(".gem:not(.collected)");
   let stolen = 0;
-  for (let i = 0; i < gems.length && i < RAT_STEAL; i++) {
+  for (let i = 0; i < gems.length && i < CAT_STEAL; i++) {
     const gem = gems[i];
     const amount =
       Number(gem.dataset.shapeLevel) +
@@ -2588,50 +2594,50 @@ function spawnRat() {
     stolen = 10; // 画面に宝石がなかったときの、おみやげぶん
   }
 
-  const rat = document.createElement("button");
-  rat.className = "event-guest rat";
-  rat.textContent = "🐭";
-  rat.setAttribute("aria-label", "ネズミをつかまえる");
+  const cat = document.createElement("button");
+  cat.className = "event-guest cat";
+  cat.textContent = "🐈‍⬛"; // 黒猫。ほかの絵文字に変えてもOK
+  cat.setAttribute("aria-label", "黒猫に声をかける");
 
-  // 画面のはしから、反対のはしまで走っていく
+  // 画面のはしから、反対のはしまで音もなく歩いていく
   const distance = mainArea.clientWidth + 80;
-  rat.style.left = "-60px";
-  rat.style.top = (20 + Math.random() * Math.max(0, mainArea.clientHeight - 100)) + "px";
-  rat.style.setProperty("--run-distance", distance + "px");
-  rat.style.animationDuration = RAT_LIFETIME + "s";
+  cat.style.left = "-60px";
+  cat.style.top = (20 + Math.random() * Math.max(0, mainArea.clientHeight - 100)) + "px";
+  cat.style.setProperty("--run-distance", distance + "px");
+  cat.style.animationDuration = CAT_LIFETIME + "s";
 
   let caught = false;
 
-  rat.addEventListener("pointerdown", function () {
+  cat.addEventListener("pointerdown", function () {
     if (caught) {
       return;
     }
     caught = true;
-    ratCaught += 1;
+    catCaught += 1;
     gemCount += stolen;
     totalGems += stolen;
-    rat.remove();
+    cat.remove();
 
     playCollectSound();
     updateDisplay();
     saveGame();
-    showToast("ネズミから宝石を取り返した! 💎+" + stolen);
+    showToast("黒猫が宝石を置いていった! 💎+" + stolen);
     checkAchievements();
     scheduleEvent();
   });
 
-  mainArea.appendChild(rat);
-  showToast("あら、ネズミが宝石を持って逃げますわ!");
+  mainArea.appendChild(cat);
+  showToast("あら、黒猫が宝石をくわえていますわ……");
 
-  // 逃げ切られたら、くわえていった宝石はおしまい
+  // 声をかけそびれると、黒猫は闇にとけて消えてしまう
   setTimeout(function () {
     if (!caught) {
       caught = true;
-      rat.remove();
-      showToast("ネズミに逃げられた……");
+      cat.remove();
+      showToast("黒猫は闇にとけて消えた……");
       scheduleEvent();
     }
-  }, RAT_LIFETIME * 1000);
+  }, CAT_LIFETIME * 1000);
 }
 
 // 🧺 行商人:しばらく立ち止まっている。タップすると宝石をゆずってくれる
@@ -2767,7 +2773,7 @@ spawnLoop();
 decayLoop();
 
 // 使用人のお掃除ループ(「使用人を雇う」を買うまでは何もしない)と、
-// ときどき起こるランダムイベント(ネズミ・行商人)の予約を始める
+// ときどき起こるランダムイベント(黒猫・行商人)の予約を始める
 servantLoop();
 scheduleEvent();
 
