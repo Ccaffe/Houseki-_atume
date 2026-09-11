@@ -22,10 +22,15 @@
          ① ヘッダー(いちばん上のバー)
          =============================== -->
     <header class="header">
-      <!-- 左側:ユーザーのレベル表示 -->
-      <div class="user-level">User Lv. <span id="user-level">1</span></div>
-      <!-- 右側:集めた宝石の数。数字の部分は script.js が書き換える -->
+      <!-- 左側:ユーザーのレベルと、いま何代目か(2代目からだけ表示される) -->
+      <div class="user-level">
+        User Lv. <span id="user-level">1</span>
+        <span class="gen-badge" id="gen-badge" hidden></span>
+      </div>
+      <!-- 右側:持っている家宝の数(0のときは隠れる)と、集めた宝石の数。
+           数字の部分は script.js が書き換える -->
       <div class="gem-counter">
+        <span class="heirloom-badge" id="heirloom-badge" hidden>🏺 <span id="heirloom-count">0</span></span>
         あつめた宝石 <span class="gem-icon">💎</span> <span id="gem-count">0</span>
       </div>
     </header>
@@ -270,6 +275,44 @@
     </section>
 
     <!-- ===============================
+         ③-D やかた画面(ふだんは hidden で隠れている)
+         メニューの「やかた」を押すと表示される。
+         上のタブで「宝物庫」「図鑑」「実績」を切り替える。
+           宝物庫 … 家宝で永久アップグレードを買うお店(お屋敷を継ぐと開く)
+           図鑑   … 集めた宝石の種類を記録(宝物庫で「宝石図鑑」を買うと開く)
+           実績   … トロフィー。最初から見られる
+         中身は script.js がぜんぶ作る
+         =============================== -->
+    <section class="mansion-screen" id="mansion-screen" hidden>
+      <h2 class="screen-heading">✦ やかた ✦</h2>
+
+      <!-- タブ(3つのボタン) -->
+      <div class="tab-row">
+        <button class="tab-button" id="tab-treasure">宝物庫</button>
+        <button class="tab-button" id="tab-zukan">図鑑</button>
+        <button class="tab-button" id="tab-achieve">実績</button>
+      </div>
+
+      <!-- タブ①:宝物庫 -->
+      <div class="tab-body" id="tab-body-treasure" hidden>
+        <p class="mansion-note" id="treasure-note"></p>
+        <div class="store-list" id="treasure-list"></div>
+      </div>
+
+      <!-- タブ②:図鑑 -->
+      <div class="tab-body" id="tab-body-zukan" hidden>
+        <p class="mansion-note" id="zukan-note"></p>
+        <div class="zukan-grid" id="zukan-grid"></div>
+      </div>
+
+      <!-- タブ③:実績 -->
+      <div class="tab-body" id="tab-body-achieve" hidden>
+        <p class="mansion-note" id="achieve-note"></p>
+        <div class="store-list" id="achieve-list"></div>
+      </div>
+    </section>
+
+    <!-- ===============================
          ③-C ストア画面(ふだんは hidden で隠れている)
          メニューの「ストア」を押すと表示される。
          商品は script.js の「ストア商品コーナー」から作られる。
@@ -321,6 +364,13 @@
           <span class="status-name">範囲</span>
           <span class="status-level">Lv. <span id="range-level">1</span></span>
         </div>
+        <!-- いちばん下は「お屋敷を継ぐ」(プレステージ)の行。
+             5つの強化がぜんぶ Lv10 以上になると、金色に光って押せるようになる -->
+        <div class="status-row" id="prestige-row">
+          <button class="row-lvup row-prestige" id="prestige-button">継ぐ<span class="row-cost">🏺 <span id="prestige-reward-small">0</span></span></button>
+          <span class="status-name">お屋敷を継ぐ</span>
+          <span class="status-level" id="prestige-state">🔒</span>
+        </div>
       </div>
     </section>
 
@@ -333,6 +383,7 @@
     <nav class="menu">
       <button class="menu-button" id="menu-atsumeru">あつめる</button>
       <button class="menu-button" id="menu-story">ストーリー</button>
+      <button class="menu-button" id="menu-mansion">やかた</button>
       <button class="menu-button" id="menu-store">ストア</button>
       <button class="menu-button" id="menu-settings">せってい</button>
     </nav>
@@ -355,6 +406,10 @@
           <div class="stats-row"><span>あつめた宝石の総数</span><span id="stat-total">0</span></div>
           <div class="stats-row"><span>タップした回数</span><span id="stat-taps">0</span></div>
           <div class="stats-row"><span>強化につかった宝石</span><span id="stat-spent">0</span></div>
+          <div class="stats-row"><span>いま何代目</span><span id="stat-gen">1</span></div>
+          <div class="stats-row"><span>持っている家宝</span><span id="stat-heirlooms">0</span></div>
+          <div class="stats-row"><span>図鑑の種類</span><span id="stat-zukan">0</span></div>
+          <div class="stats-row"><span>達成した実績</span><span id="stat-achieve">0</span></div>
         </div>
 
         <button class="reset-button" id="reset-button">データをリセット</button>
@@ -424,6 +479,26 @@
         </p>
         <button class="reset-button" id="reset-yes">はい</button>
         <button class="close-button" id="reset-no">いいえ</button>
+      </div>
+    </div>
+
+    <!-- ===============================
+         ⑦-B お屋敷を継ぐ(プレステージ)の確認画面
+         ステータスパネルの「継ぐ」を押すと出てくる。
+         もらえる家宝・消えるもの・のこるものをちゃんと見せてから実行する
+         =============================== -->
+    <div class="overlay" id="prestige-overlay" hidden>
+      <div class="panel">
+        <h2 class="panel-title">✦ お屋敷を継ぐ ✦</h2>
+        <p class="prestige-amount">🏺 <span id="prestige-reward">0</span></p>
+        <p class="confirm-text">
+          家宝を <span id="prestige-reward-text">0</span> つ受けとって、
+          <span id="prestige-next-gen">2</span>代目として始めます。<br><br>
+          <b>消えるもの</b>:いま持っている宝石・5つの強化レベル<br>
+          <b>のこるもの</b>:家宝と宝物庫の品・図鑑・実績・ストーリー・きろく
+        </p>
+        <button class="reset-button" id="prestige-yes">継ぐ</button>
+        <button class="close-button" id="prestige-no">やめておく</button>
       </div>
     </div>
 

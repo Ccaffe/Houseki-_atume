@@ -188,6 +188,107 @@ const products = [
 
 
 /* =========================================================
+   ★ 宝物庫(ほうもつこ)コーナー ★
+   「お屋敷を継ぐ(プレステージ)」でもらえる “家宝(かほう)” を払って買う、
+   ずっと消えない永久アップグレードの一覧。
+   品物を増やしたいときは、{ } のかたまりをコピーして増やすだけ!
+     id          … プログラムが見分けるための名前(英語。ほかとかぶらないように)
+     icon        … 一覧に出る絵文字
+     name        … 品物の名前
+     cost        … お値段(家宝の数)
+     needs       … 先に買っておく品の id(いらないときは null)
+     description … 説明の文章
+   ※ 効果の中身は script.js の中で hasTreasure("id") を使って分けている。
+     効果の強さを変えたいときは、下の「宝物庫の効果の設定」の数字を変える
+   ========================================================= */
+const treasureItems = [
+  { id: "eye",      icon: "👁️", name: "目利き",       cost: 2,  needs: null,
+    description: "宝石を見る目が肥えて、獲得数が +25% になる。" },
+
+  { id: "servant",  icon: "🔔", name: "使用人を雇う", cost: 3,  needs: null,
+    description: "使用人が、消えそうな宝石を自動で拾ってくれる。" },
+
+  { id: "fountain", icon: "⛲", name: "宝石の泉",     cost: 4,  needs: null,
+    description: "宝石の湧いてくる間隔が 15% 短くなる。" },
+
+  { id: "box",      icon: "📦", name: "玄関の宝石箱", cost: 5,  needs: null,
+    description: "お屋敷を継いだあと、宝石 500個 を持って始められる。" },
+
+  { id: "zukan",    icon: "📖", name: "宝石図鑑",     cost: 5,  needs: null,
+    description: "やかたに図鑑が open! 集めた種類1つにつき獲得数 +1%。" },
+
+  { id: "hands",    icon: "🧹", name: "使用人の手際", cost: 6,  needs: "servant",
+    description: "使用人が宝石を拾う速さが2倍になる。" },
+
+  { id: "elegant",  icon: "🕯️", name: "優雅な時間",   cost: 7,  needs: null,
+    description: "エレガントタイムが 45秒 に延びる(+15秒)。" },
+
+  { id: "merchant", icon: "🗝️", name: "常連の商人",   cost: 8,  needs: null,
+    description: "宝箱の出てくる間隔が半分になる。" },
+
+  { id: "haggle",   icon: "💰", name: "値切り上手",   cost: 10, needs: null,
+    description: "強化(Lv UP)のお値段が 2割引 になる。" },
+];
+
+
+/* =========================================================
+   ★ 実績(トロフィー)コーナー ★
+   達成すると宝石がもらえて、さらに1つにつき獲得数が +2% される。
+   実績を増やしたいときは、{ } のかたまりをコピーして増やすだけ!
+     id     … 見分けるための名前(英語)
+     icon   … 絵文字
+     name   … 実績の名前
+     detail … 達成のじょうけんの説明
+     reward … 達成したときにもらえる宝石の数
+     check  … 「達成したか?」を調べる小さな関数。
+              return のうしろに条件を書くと、true(達成)か false(まだ)になる
+   ========================================================= */
+const achievements = [
+  { id: "first100", icon: "🌱", name: "はじめの一歩", detail: "宝石を100個あつめる", reward: 50,
+    check: function () { return totalGems >= 100; } },
+
+  { id: "tap1000", icon: "👆", name: "タップの達人", detail: "宝石を1,000回タップする", reward: 300,
+    check: function () { return tapCount >= 1000; } },
+
+  { id: "total10000", icon: "💎", name: "宝石あつめ名人", detail: "宝石を10,000個あつめる", reward: 500,
+    check: function () { return totalGems >= 10000; } },
+
+  { id: "star", icon: "⭐", name: "星をつかむ", detail: "「形」を Lv8 まで上げる", reward: 200,
+    check: function () { return upgrades.shape.level >= 8; } },
+
+  { id: "blue", icon: "🔵", name: "青の宝石", detail: "「色」を Lv20 まで上げる", reward: 500,
+    check: function () { return upgrades.color.level >= 20; } },
+
+  { id: "chest10", icon: "🎁", name: "宝箱あつめ", detail: "宝箱を10回あける", reward: 400,
+    check: function () { return chestOpened >= 10; } },
+
+  { id: "rat", icon: "🐭", name: "どろぼう退治", detail: "ネズミから宝石を取り返す", reward: 200,
+    check: function () { return ratCaught >= 1; } },
+
+  { id: "story3", icon: "📚", name: "物語のつづき", detail: "ストーリーを3話まで解放する", reward: 300,
+    check: function () { return unlockedStories >= 3; } },
+
+  { id: "prestige1", icon: "🏛️", name: "お屋敷を継ぐ", detail: "はじめてお屋敷を継ぐ", reward: 300,
+    check: function () { return generation >= 2; } },
+
+  { id: "gen3", icon: "🏰", name: "名家のあるじ", detail: "3代目になる", reward: 1000,
+    check: function () { return generation >= 3; } },
+
+  { id: "hire", icon: "🔔", name: "人を使う", detail: "宝物庫で「使用人を雇う」を買う", reward: 300,
+    check: function () { return hasTreasure("servant"); } },
+
+  { id: "zukan50", icon: "📗", name: "図鑑のなかば", detail: "図鑑を50種類うめる", reward: 800,
+    check: function () { return zukanFound.length >= 50; } },
+
+  { id: "zukan100", icon: "📕", name: "図鑑コンプリート", detail: "図鑑を100種類ぜんぶうめる", reward: 5000,
+    check: function () { return zukanFound.length >= 100; } },
+
+  { id: "total100000", icon: "👑", name: "大富豪", detail: "宝石を100,000個あつめる", reward: 3000,
+    check: function () { return totalGems >= 100000; } },
+];
+
+
+/* =========================================================
    ★ セリフ編集コーナー ★
    チュートリアルで出てくる「お屋敷の主(おじょうさま)」のセリフ。
    文章を変えたいときは、ここを書きかえるだけでOK!
@@ -227,6 +328,17 @@ const tutorialLines = {
   chestThanks: `感謝いたしますわ。
 お礼にエレガントタイム!
 ですわ。`,
+
+  // --- 5つの強化がぜんぶ Lv10 になったとき(1回だけ) ---
+  prestigeReady: `見事に育てましたわね。
+そろそろ、このお屋敷を
+あなたにお譲りしましょう。
+下の「継ぐ」を押してみて。`,
+
+  // --- お屋敷を継いだ直後 ---
+  prestigeDone: `おめでとう、新しい当主さま。
+家宝は「やかた」の宝物庫で
+使えますわ。`,
 };
 
 
@@ -242,6 +354,17 @@ let tutorialSeen = false;    // チュートリアル(セリフの案内)をぜ�
 let firstChestDone = false;  // はじめての特典の宝箱をもう開けたか
 let tutorialStep = null;     // いま表示中のセリフの名前(何も出ていなければ null)
 let tutorialTapCount = 0;    // 「タップすると〜」のセリフ中に宝石を取った数
+
+// ---- お屋敷を継ぐ(プレステージ)まわりのデータ ----
+// これらは「お屋敷を継いで」もリセットされず、ずっと引き継がれる
+let heirlooms = 0;            // いま持っている家宝の数(宝物庫で使う通貨)
+let ownedTreasures = [];      // 宝物庫で買った品の id を入れておく配列
+let generation = 1;           // いま何代目か(継ぐたびに1ずつ増える)
+let prestigeAsked = false;    // 「継げるようになった」案内をもう出したか
+let zukanFound = [];          // 図鑑で見つけた組み合わせ("形の段階-色の段階")の配列
+let unlockedAchievements = []; // 達成ずみの実績の id の配列
+let chestOpened = 0;          // 宝箱をあけた回数(実績用)
+let ratCaught = 0;            // ネズミから宝石を取り返した回数(実績用)
 
 // 「const」は「変わらない値」を作る書き方
 const MAX_LEVEL = 30;    // 強化レベルの上限(ここまで上げられる)
@@ -296,6 +419,31 @@ const CHEST_UNLOCK_LEVEL = 5; // 宝箱が解禁されるユーザーレベル
 const RANGE_RADIUS_PER_LEVEL = 6; // 範囲レベル1つごとに、半径が何ピクセル広がるか
 const GEM_HIT_PADDING = 6;        // 宝石まわりの、押しやすくするための小さな余白
 
+// ---- お屋敷を継ぐ(プレステージ)の設定 ----
+const PRESTIGE_NEED_LEVEL = 10;     // 5つの強化がこのレベル以上になると継げる
+const HEIRLOOM_PER_USER_LEVEL = 10; // User Lv 何ごとに家宝を1つもらえるか
+
+// ---- 宝物庫の効果の設定(ここの数字を変えると効果の強さが変わる) ----
+const EYE_BONUS = 0.25;             // 目利き:獲得数が何倍ふえるか(0.25 = +25%)
+const FOUNTAIN_FASTER = 0.85;       // 宝石の泉:湧く間隔を何倍にするか(0.85 = 15%短縮)
+const BOX_START_GEMS = 500;         // 玄関の宝石箱:継いだあとの持ちものの宝石
+const ELEGANT_EXTRA_SECONDS = 15;   // 優雅な時間:エレガントタイムを何秒のばすか
+const MERCHANT_CHEST_FASTER = 0.5;  // 常連の商人:宝箱の待ち時間を何倍にするか
+const HAGGLE_DISCOUNT = 0.8;        // 値切り上手:強化のお値段を何倍にするか(2割引)
+const ZUKAN_BONUS_PER_CELL = 0.01;  // 図鑑:1種類あつめるごとに獲得数 +1%
+const ACHIEVEMENT_BONUS = 0.02;     // 実績:1つ達成するごとに獲得数 +2%
+const SERVANT_INTERVAL = 6000;      // 使用人が宝石を拾う間隔(ミリ秒)
+const SERVANT_FAST_INTERVAL = 3000; // 「使用人の手際」を買ったあとの間隔
+
+// ---- ランダムイベント(ネズミ・行商人)の設定 ----
+const EVENT_UNLOCK_LEVEL = 5; // このユーザーレベルからイベントが起こり始める
+const EVENT_WAIT_MIN = 90;    // 次のイベントまでの最短(秒)
+const EVENT_WAIT_MAX = 180;   // 最長(秒)
+const RAT_STEAL = 5;          // ネズミが1回にくわえていく宝石の数(画面の宝石)
+const RAT_LIFETIME = 7;       // ネズミが逃げ切るまでの時間(秒)
+const PEDDLER_LIFETIME = 12;  // 行商人が帰ってしまうまでの時間(秒)
+const PEDDLER_GEMS_PER_LEVEL = 30; // 行商人がくれる宝石(User Lv 1つあたり)
+
 let feverSecondsLeft = 0;    // フィーバーの残り秒数(0なら通常モード)
 let feverCountTimer = null;  // 残り時間をカウントダウンするタイマー
 let chestTimer = null;       // 次の宝箱の出現予約(いつも1本だけ)
@@ -338,9 +486,60 @@ function isUpgradeUnlocked(type) {
 }
 
 // 次のレベルに上げるのに必要な宝石の数。
-// レベル1→2 は 10個、2→3 は 20個…と、レベル×10 で増えていく
+// レベル1→2 は 10個、2→3 は 20個…と、レベル×10 で増えていく。
+// 宝物庫で「値切り上手」を買っていると、2割引きになる!
 function upgradeCost(level) {
-  return level * 10;
+  let cost = level * 10;
+  if (hasTreasure("haggle")) {
+    cost = Math.ceil(cost * HAGGLE_DISCOUNT); // Math.ceil = 小数点以下を切り上げ
+  }
+  return cost;
+}
+
+
+/* ---------- 家宝・宝物庫まわりの小さな関数 ---------- */
+
+// 宝物庫でその品を買っているか調べる。true(買った)か false(まだ)が返る。
+// indexOf は「配列の何番目にあるか」を返し、なければ -1 になる
+function hasTreasure(id) {
+  return ownedTreasures.indexOf(id) !== -1;
+}
+
+// もうお屋敷を継げるか?(5つの強化がぜんぶ Lv10 以上になったら継げる)
+function canPrestige() {
+  for (let i = 0; i < UPGRADE_ORDER.length; i++) {
+    if (upgrades[UPGRADE_ORDER[i]].level < PRESTIGE_NEED_LEVEL) {
+      return false; // 1つでも足りなければ、まだ継げない
+    }
+  }
+  return true;
+}
+
+// いま継ぐと、家宝を何個もらえるか。User Lv 10 ごとに1つ
+function getHeirloomReward() {
+  return Math.floor(getUserLevel() / HEIRLOOM_PER_USER_LEVEL);
+}
+
+// 宝石の獲得数が「何倍」になるかをまとめて計算する。
+// 目利き(+25%)・図鑑(1種類 +1%)・実績(1つ +2%)を全部たし算する
+function getGemMultiplier() {
+  let multiplier = 1;
+  if (hasTreasure("eye")) {
+    multiplier += EYE_BONUS;
+  }
+  if (hasTreasure("zukan")) {
+    multiplier += zukanFound.length * ZUKAN_BONUS_PER_CELL;
+  }
+  multiplier += unlockedAchievements.length * ACHIEVEMENT_BONUS;
+  return multiplier;
+}
+
+// エレガントタイムの長さ(秒)。「優雅な時間」を買っていると長くなる
+function getFeverSeconds() {
+  if (hasTreasure("elegant")) {
+    return FEVER_SECONDS + ELEGANT_EXTRA_SECONDS;
+  }
+  return FEVER_SECONDS;
 }
 
 
@@ -366,6 +565,12 @@ const storyNext = document.getElementById("story-next");               // 「次
 const fadeScreen = document.getElementById("fade-screen");             // 暗転の黒い幕
 const storeScreen = document.getElementById("store-screen");   // ストア画面
 const storeList = document.getElementById("store-list");       // 商品の一覧
+// やかた画面(宝物庫・図鑑・実績)の部品たち
+const mansionScreen = document.getElementById("mansion-screen"); // やかた画面ぜんたい
+const treasureList = document.getElementById("treasure-list");   // 宝物庫の品の一覧
+const zukanGrid = document.getElementById("zukan-grid");         // 図鑑のマス目
+const achieveList = document.getElementById("achieve-list");     // 実績の一覧
+const prestigeOverlay = document.getElementById("prestige-overlay"); // 継承の確認画面
 const settingsOverlay = document.getElementById("settings-overlay"); // せってい画面
 const confirmOverlay = document.getElementById("confirm-overlay");   // リセット確認画面
 const gameFrame = document.querySelector(".game"); // ゲーム全体の枠(トースト表示に使う)
@@ -427,6 +632,52 @@ function updateDisplay() {
   updateOneUpgrade("size");
   updateOneUpgrade("speed");
   updateOneUpgrade("range");
+
+  updateHeaderBadges();  // ヘッダーの「◯代目」「家宝の数」
+  updatePrestigeRow();   // パネルいちばん下の「お屋敷を継ぐ」の行
+}
+
+// ヘッダーの小さな表示。1代目・家宝0のときは隠しておいて、
+// 継いだあとから出てくる(最初の人の画面をごちゃごちゃさせないため)
+function updateHeaderBadges() {
+  const genBadge = document.getElementById("gen-badge");
+  genBadge.textContent = "/ " + generation + "代目";
+  genBadge.hidden = generation <= 1;
+
+  const heirloomBadge = document.getElementById("heirloom-badge");
+  document.getElementById("heirloom-count").textContent = heirlooms;
+  heirloomBadge.hidden = heirlooms <= 0 && generation <= 1;
+}
+
+// 「お屋敷を継ぐ」の行の見た目を新しくする。
+// 条件を満たしていなければ 🔒 で押せない。満たしたら金色に光って押せる!
+function updatePrestigeRow() {
+  const row = document.getElementById("prestige-row");
+  const button = document.getElementById("prestige-button");
+  const reward = getHeirloomReward();
+
+  document.getElementById("prestige-reward-small").textContent = reward;
+
+  if (canPrestige()) {
+    row.classList.remove("locked");
+    row.classList.add("ready");
+    button.disabled = false;
+    document.getElementById("prestige-state").textContent = "家宝 +" + reward;
+
+    // はじめて条件を満たした瞬間だけ、おじょうさまが声をかけてくれる
+    if (!prestigeAsked) {
+      prestigeAsked = true;
+      saveGame();
+      if (tutorialStep === null) {
+        showTutorialStep("prestigeReady");
+      }
+    }
+  } else {
+    row.classList.add("locked");
+    row.classList.remove("ready");
+    button.disabled = true;
+    document.getElementById("prestige-state").textContent = "🔒 Lv" + PRESTIGE_NEED_LEVEL;
+  }
 }
 
 
@@ -453,6 +704,15 @@ function saveGame() {
       colorLevel: upgrades.color.level,
       speedLevel: upgrades.speed.level,
       rangeLevel: upgrades.range.level,
+      // ここから下は「お屋敷を継いでも引き継がれる」データ
+      heirlooms: heirlooms,
+      ownedTreasures: ownedTreasures,
+      generation: generation,
+      prestigeAsked: prestigeAsked,
+      zukanFound: zukanFound,
+      unlockedAchievements: unlockedAchievements,
+      chestOpened: chestOpened,
+      ratCaught: ratCaught,
     };
     localStorage.setItem("housekiSave", JSON.stringify(data));
   } catch (e) {
@@ -487,6 +747,15 @@ function loadGame() {
     upgrades.color.level = data.colorLevel || 1;
     upgrades.speed.level = data.speedLevel || 1;
     upgrades.range.level = data.rangeLevel || 1;
+    // 古い保存データには下の項目がないので、「なければ 0 や空っぽの配列」にする
+    heirlooms = data.heirlooms || 0;
+    ownedTreasures = data.ownedTreasures || [];
+    generation = data.generation || 1;
+    prestigeAsked = data.prestigeAsked || false;
+    zukanFound = data.zukanFound || [];
+    unlockedAchievements = data.unlockedAchievements || [];
+    chestOpened = data.chestOpened || 0;
+    ratCaught = data.ratCaught || 0;
   } catch (e) {
     // 読み込めない環境では最初からスタート
   }
@@ -581,6 +850,9 @@ function spawnLoop() {
   // 湧く間隔を計算する。「秒数」レベル1つごとに少し早くなり、
   // はじめてボーナス中とエレガントタイム中はいつでも爆速!
   let interval = SPAWN_INTERVAL - (upgrades.speed.level - 1) * SPAWN_SPEED_BONUS;
+  if (hasTreasure("fountain")) {
+    interval = interval * FOUNTAIN_FASTER; // 宝物庫の「宝石の泉」で15%短縮!
+  }
   interval = Math.max(SPAWN_INTERVAL_MIN, interval); // 早くなりすぎないように
   if (feverSecondsLeft > 0 || welcomeRushActive) {
     interval = RUSH_INTERVAL;
@@ -809,7 +1081,14 @@ function collectGem(gem, withSound) {
   const gemShapeLevel = Number(gem.dataset.shapeLevel);
   const gemSizeLevel = Number(gem.dataset.sizeLevel);
   const gemColorLevel = Number(gem.dataset.colorLevel);
-  const amount = gemShapeLevel + (gemSizeLevel - 1) + (gemColorLevel - 1);
+  const baseAmount = gemShapeLevel + (gemSizeLevel - 1) + (gemColorLevel - 1);
+
+  // 目利き・図鑑・実績のボーナスをかけ算する(なにも無いときは1倍のまま)。
+  // Math.round = 小数点以下を四捨五入
+  const amount = Math.round(baseAmount * getGemMultiplier());
+
+  // この宝石の「形と色の組み合わせ」を図鑑に記録する
+  recordZukan(getDesignStage(gemShapeLevel), getDesignStage(gemColorLevel));
 
   // 2. 宝石を増やして、統計も数える
   gemCount += amount;
@@ -849,7 +1128,10 @@ function collectGem(gem, withSound) {
     }
   }
 
-  // 9. 「タップすると宝石が集められるわ。」のセリフ中に
+  // 9. 実績を達成していないか調べる(達成していたらごほうびが出る)
+  checkAchievements();
+
+  // 10. 「タップすると宝石が集められるわ。」のセリフ中に
   //    宝石を3個タップしたら、次のセリフへ進む
   if (tutorialStep === "tap") {
     tutorialTapCount += 1;
@@ -997,6 +1279,8 @@ tutorialOkButton.addEventListener("click", function () {
     finishTutorial(); // これでチュートリアルはおしまい!
   } else if (tutorialStep === "chestThanks") {
     hideTutorial();
+  } else if (tutorialStep === "prestigeReady" || tutorialStep === "prestigeDone") {
+    hideTutorial(); // 継承の案内・お祝いは、OKを押すと閉じるだけ
   }
 });
 
@@ -1062,7 +1346,10 @@ function endWelcomeRush() {
 //   予約がたまって宝箱がいくつも出てしまうことがない
 function scheduleChest() {
   clearTimeout(chestTimer); // 前の予約があれば取り消す
-  const waitSeconds = CHEST_WAIT_MIN + Math.random() * (CHEST_WAIT_MAX - CHEST_WAIT_MIN);
+  let waitSeconds = CHEST_WAIT_MIN + Math.random() * (CHEST_WAIT_MAX - CHEST_WAIT_MIN);
+  if (hasTreasure("merchant")) {
+    waitSeconds = waitSeconds * MERCHANT_CHEST_FASTER; // 「常連の商人」で待ち時間が半分!
+  }
   chestTimer = setTimeout(spawnChest, waitSeconds * 1000); // ×1000 で秒→ミリ秒にする
 }
 
@@ -1100,6 +1387,8 @@ function spawnChest() {
     }
     opened = true;
     chest.remove();
+    chestOpened += 1; // 実績「宝箱あつめ」のための数え上げ
+    checkAchievements();
     startFever(); // 宝箱を開けるとフィーバータイム!
   });
 
@@ -1142,6 +1431,7 @@ function spawnFirstChest() {
 
     // もう特典はもらった、と保存しておく(次からはふつうの宝箱が出る)
     firstChestDone = true;
+    chestOpened += 1;
     saveGame();
 
     startFever();                     // お礼のエレガントタイム!
@@ -1161,17 +1451,17 @@ function startFever() {
   // (※ 二重に始めるとカウントダウンのタイマーが2本になってしまい、
   //     終了のお知らせが何度も出てしまう)
   if (feverSecondsLeft > 0) {
-    feverSecondsLeft += FEVER_SECONDS;
+    feverSecondsLeft += getFeverSeconds();
     updateFeverBanner();
     playFeverSound();
     showToast("エレガントタイム 延長! 残り " + feverSecondsLeft + "秒!");
     return;
   }
 
-  feverSecondsLeft = FEVER_SECONDS;
+  feverSecondsLeft = getFeverSeconds();
   mainArea.classList.add("fever"); // 画面が金色に光る(style.css)
   playFeverSound();
-  showToast("エレガントタイム! " + FEVER_SECONDS + "秒間、宝石ざくざく!");
+  showToast("エレガントタイム! " + feverSecondsLeft + "秒間、宝石ざくざく!");
 
   // 残り時間のバナーを画面の上に出す
   const banner = document.createElement("div");
@@ -1290,6 +1580,9 @@ function buyUpgrade(type) {
     showTutorialStep("praise");
   }
 
+  // 実績(「星をつかむ」など)を達成していないか調べる
+  checkAchievements();
+
   // ユーザーレベルが5になったら、はじめての特典の宝箱が出てくる!
   if (!firstChestDone && getUserLevel() >= CHEST_UNLOCK_LEVEL) {
     spawnFirstChest();
@@ -1306,6 +1599,7 @@ function showScreen(name) {
   statusPanel.hidden = true;
   storyScreen.hidden = true;
   storeScreen.hidden = true;
+  mansionScreen.hidden = true;
 
   // …選ばれた画面だけを表示する(開くときに一覧を最新の状態で作り直す)
   if (name === "story") {
@@ -1314,6 +1608,9 @@ function showScreen(name) {
   } else if (name === "store") {
     storeScreen.hidden = false;
     buildStoreList();
+  } else if (name === "mansion") {
+    mansionScreen.hidden = false;
+    showMansionTab(mansionTab); // 前に開いていたタブをそのまま開く
   } else {
     // "atsumeru"(宝石エリアと強化パネルのセット)
     mainArea.hidden = false;
@@ -1324,6 +1621,7 @@ function showScreen(name) {
   document.getElementById("menu-atsumeru").classList.toggle("active", name === "atsumeru");
   document.getElementById("menu-story").classList.toggle("active", name === "story");
   document.getElementById("menu-store").classList.toggle("active", name === "store");
+  document.getElementById("menu-mansion").classList.toggle("active", name === "mansion");
 }
 
 
@@ -1389,6 +1687,7 @@ function unlockStory() {
   saveGame();
   buildStoryList(); // 一覧を作り直すと、解放されたお話が読めるようになっている
   showToast("ストーリー" + unlockedStories + "「" + stories[unlockedStories - 1].title + "」を解放した!");
+  checkAchievements();
 }
 
 
@@ -1631,6 +1930,11 @@ function openSettings() {
   document.getElementById("stat-total").textContent = totalGems.toLocaleString();
   document.getElementById("stat-taps").textContent = tapCount.toLocaleString();
   document.getElementById("stat-spent").textContent = spentGems.toLocaleString();
+  document.getElementById("stat-gen").textContent = generation + "代目";
+  document.getElementById("stat-heirlooms").textContent = heirlooms;
+  document.getElementById("stat-zukan").textContent = zukanFound.length + " / 100";
+  document.getElementById("stat-achieve").textContent =
+    unlockedAchievements.length + " / " + achievements.length;
 
   // hidden を外すと画面に現れる
   settingsOverlay.hidden = false;
@@ -1644,6 +1948,12 @@ function showToast(message) {
   const toast = document.createElement("div");
   toast.className = "toast"; // style.css のふわっと出るアニメーションが付く
   toast.textContent = message;
+
+  // お知らせが同時にいくつも出たときは、上に積み上げて重ならないようにする
+  // (実績の達成などで、いちどに2つ3つ出ることがあるため)
+  const already = gameFrame.querySelectorAll(".toast").length;
+  toast.style.bottom = (130 + already * 46) + "px";
+
   gameFrame.appendChild(toast);
 
   // アニメーションが終わったころ(2秒後)に消す。ゴミを残さないため
@@ -1683,13 +1993,22 @@ function doReset() {
   spawnPaused = false;    // 湧きのお休み状態も解除する
   tutorialSeen = false;   // チュートリアルもまた見られるようにする
   firstChestDone = false; // はじめての宝箱もまた出るようにする
+  // 「データをリセット」はぜんぶ最初から。家宝や図鑑・実績も消える
+  heirlooms = 0;
+  ownedTreasures = [];
+  generation = 1;
+  prestigeAsked = false;
+  zukanFound = [];
+  unlockedAchievements = [];
+  chestOpened = 0;
+  ratCaught = 0;
 
   // 3. フィーバー中だったら終わらせて、
   //    画面に残っている宝石と宝箱をぜんぶ消す
   if (feverSecondsLeft > 0) {
     endFever();
   }
-  mainArea.querySelectorAll(".gem, .chest").forEach(function (item) {
+  mainArea.querySelectorAll(".gem, .chest, .event-guest").forEach(function (item) {
     item.remove();
   });
 
@@ -1704,6 +2023,553 @@ function doReset() {
   startWelcomeRush();     // すでにボーナス中なら何も起きない
   updateWelcomeBanner();  // バナーの数字を 0 / 50 に戻す
   showTutorialStep("welcome"); // おじょうさまのあいさつも最初から
+}
+
+
+
+/* =========================================================
+   やかた画面(宝物庫・図鑑・実績)
+   3つのタブを切り替えて使う。中身はこの下の関数たちが作る
+   ========================================================= */
+
+let mansionTab = "treasure"; // いま開いているタブ("treasure"・"zukan"・"achieve")
+
+// タブを切り替える。name には "treasure"・"zukan"・"achieve" のどれかが入る
+function showMansionTab(name) {
+  mansionTab = name;
+
+  // 3つの中身を、選ばれたものだけ表示する
+  document.getElementById("tab-body-treasure").hidden = name !== "treasure";
+  document.getElementById("tab-body-zukan").hidden = name !== "zukan";
+  document.getElementById("tab-body-achieve").hidden = name !== "achieve";
+
+  // 選ばれているタブのボタンを光らせる
+  document.getElementById("tab-treasure").classList.toggle("active", name === "treasure");
+  document.getElementById("tab-zukan").classList.toggle("active", name === "zukan");
+  document.getElementById("tab-achieve").classList.toggle("active", name === "achieve");
+
+  // 開いたときに、中身を最新の状態で作り直す
+  if (name === "treasure") {
+    buildTreasureList();
+  } else if (name === "zukan") {
+    buildZukan();
+  } else {
+    buildAchieveList();
+  }
+}
+
+
+/* ---------- タブ①:宝物庫(家宝で買う永久アップグレード) ---------- */
+
+// 品物の一覧を作る(いちばん上の「宝物庫コーナー」の treasureItems から)
+function buildTreasureList() {
+  // 上の説明文
+  const note = document.getElementById("treasure-note");
+  if (generation <= 1) {
+    note.textContent = "お屋敷を継ぐ(プレステージ)と家宝がもらえて、ここで永久に消えない品が買えます。";
+  } else {
+    note.textContent = "持っている家宝 🏺 " + heirlooms + " / 買った品はお屋敷を継いでも消えません。";
+  }
+
+  treasureList.innerHTML = ""; // まず一覧を空っぽにして、作り直す
+
+  for (let i = 0; i < treasureItems.length; i++) {
+    const item = treasureItems[i];
+    const owned = hasTreasure(item.id);
+    // 先に買っておく品(needs)があるなら、それを持っているか調べる
+    const needsOk = item.needs === null || hasTreasure(item.needs);
+
+    // カードの入れ物(ストアの商品カードと同じ作り)
+    const card = document.createElement("div");
+    card.className = "product-card treasure-card";
+    if (owned) {
+      card.classList.add("owned"); // 買ったものは薄くする
+    }
+
+    // 左:品物の絵(絵文字)
+    const icon = document.createElement("div");
+    icon.className = "product-icon";
+    icon.textContent = item.icon;
+
+    // 真ん中:名前と説明
+    const info = document.createElement("div");
+    info.className = "product-info";
+    const name = document.createElement("div");
+    name.className = "product-name";
+    name.textContent = item.name;
+    const description = document.createElement("div");
+    description.className = "product-desc";
+    description.textContent = item.description;
+    if (!needsOk) {
+      // まだ前の品を買っていないときは、何が必要かを教えてあげる
+      description.textContent += "(先に「" + getTreasureName(item.needs) + "」が必要)";
+    }
+    info.appendChild(name);
+    info.appendChild(description);
+
+    // 右:買うボタン
+    const buyButton = document.createElement("button");
+    buyButton.className = "product-buy";
+    if (owned) {
+      buyButton.textContent = "所持";
+      buyButton.disabled = true;
+    } else if (!needsOk) {
+      buyButton.textContent = "🔒";
+      buyButton.disabled = true;
+    } else {
+      buyButton.textContent = "🏺 " + item.cost;
+      buyButton.disabled = heirlooms < item.cost; // 家宝が足りなければ押せない
+      buyButton.addEventListener("click", function () {
+        buyTreasure(item);
+      });
+    }
+
+    card.appendChild(icon);
+    card.appendChild(info);
+    card.appendChild(buyButton);
+    treasureList.appendChild(card);
+  }
+}
+
+// id から品物の名前を調べる小さな関数(「先に◯◯が必要」の表示に使う)
+function getTreasureName(id) {
+  for (let i = 0; i < treasureItems.length; i++) {
+    if (treasureItems[i].id === id) {
+      return treasureItems[i].name;
+    }
+  }
+  return "?";
+}
+
+// 家宝を払って品物を買う
+function buyTreasure(item) {
+  if (hasTreasure(item.id) || heirlooms < item.cost) {
+    return; // もう持っている・家宝が足りないときは何もしない
+  }
+
+  heirlooms -= item.cost;
+  ownedTreasures.push(item.id); // 買った品の id を覚えておく(ずっと消えない)
+
+  playUpgradeSound();
+  updateDisplay();
+  saveGame();
+  buildTreasureList(); // 一覧を作り直すと「所持」に変わる
+  showToast("「" + item.name + "」を手に入れた!");
+  checkAchievements();
+}
+
+
+/* ---------- タブ②:宝石図鑑(形10 × 色10 = 100種類) ---------- */
+
+// 集めた宝石の「形の段階と色の段階」の組み合わせを図鑑に記録する。
+// 例) 形3段階目・色5段階目 なら "3-5" という文字で覚えておく
+function recordZukan(shapeStage, colorStage) {
+  const key = shapeStage + "-" + colorStage;
+  if (zukanFound.indexOf(key) === -1) {
+    zukanFound.push(key); // まだ持っていない組み合わせなら図鑑に追加!
+  }
+}
+
+// 図鑑のマス目(10×10)を作る
+function buildZukan() {
+  const note = document.getElementById("zukan-note");
+
+  if (!hasTreasure("zukan")) {
+    // まだ図鑑を買っていない人には、案内だけ出す
+    note.textContent = "宝物庫で「宝石図鑑」を手に入れると、ここが開きます。";
+    zukanGrid.innerHTML = "";
+    return;
+  }
+
+  note.textContent =
+    "あつめた種類 " + zukanFound.length + " / 100(獲得数 +" + zukanFound.length + "%)" +
+    " ／ たて=形のだんかい・よこ=色のだんかい";
+
+  zukanGrid.innerHTML = "";
+
+  // たて(行)が形の段階、よこ(列)が色の段階
+  for (let shapeStage = 1; shapeStage <= DESIGN_STAGE_COUNT; shapeStage++) {
+    for (let colorStage = 1; colorStage <= DESIGN_STAGE_COUNT; colorStage++) {
+      const cell = document.createElement("div");
+      cell.className = "zukan-cell";
+      cell.title = "形 " + shapeStage + " ・ 色 " + colorStage;
+
+      if (zukanFound.indexOf(shapeStage + "-" + colorStage) !== -1) {
+        // 見つけている組み合わせ → 宝石の絵を小さく表示する。
+        // 宝石の型紙(template)から絵(SVG)だけを借りてくる
+        const template = document.getElementById("gem-template-" + shapeStage);
+        const gemSvg = template.content.firstElementChild.cloneNode(true).querySelector("svg");
+        if (gemSvg !== null) {
+          gemSvg.classList.add("zukan-gem");
+          // 宝石と同じ計算で色を決める(赤→青の色相環)
+          const hueStep = 240 / (DESIGN_STAGE_COUNT - 1);
+          cell.style.setProperty("--hue", ((colorStage - 1) * hueStep) + "deg");
+          cell.classList.add("found");
+          cell.appendChild(gemSvg);
+        }
+      } else {
+        cell.textContent = "?"; // まだ見つけていないマス
+      }
+
+      zukanGrid.appendChild(cell);
+    }
+  }
+}
+
+
+/* ---------- タブ③:実績(トロフィー) ---------- */
+
+// 実績の条件を満たしていないか、ぜんぶ調べる。
+// 宝石を集めたとき・強化したとき・継いだときなどに呼ばれる。
+// quiet に true を入れると、1つずつのお知らせを出さずにまとめて数える
+// (ゲームを開いた瞬間に、お知らせがたくさん出ないようにするため)
+function checkAchievements(quiet) {
+  let count = 0; // 今回あたらしく達成した数
+
+  for (let i = 0; i < achievements.length; i++) {
+    const achievement = achievements[i];
+
+    // もう達成ずみならとばす
+    if (unlockedAchievements.indexOf(achievement.id) !== -1) {
+      continue; // continue = この1回ぶんをとばして、次へ進む
+    }
+
+    // check() が true になったら達成!
+    if (achievement.check()) {
+      unlockedAchievements.push(achievement.id);
+      gemCount += achievement.reward;
+      count += 1;
+      if (quiet !== true) {
+        playUpgradeSound();
+        showToast("実績「" + achievement.name + "」達成! 💎+" + achievement.reward);
+      }
+    }
+  }
+
+  if (count > 0) {
+    updateDisplay();
+    saveGame();
+    if (quiet === true) {
+      showToast("実績を " + count + "個 達成した!");
+    }
+  }
+}
+
+// 実績の一覧を作る
+function buildAchieveList() {
+  document.getElementById("achieve-note").textContent =
+    "達成 " + unlockedAchievements.length + " / " + achievements.length +
+    "(1つにつき獲得数 +2%)";
+
+  achieveList.innerHTML = "";
+
+  for (let i = 0; i < achievements.length; i++) {
+    const achievement = achievements[i];
+    const done = unlockedAchievements.indexOf(achievement.id) !== -1;
+
+    const card = document.createElement("div");
+    card.className = "product-card achieve-card";
+    if (!done) {
+      card.classList.add("not-yet"); // まだのものは薄くする
+    }
+
+    const icon = document.createElement("div");
+    icon.className = "product-icon";
+    icon.textContent = done ? achievement.icon : "❔";
+
+    const info = document.createElement("div");
+    info.className = "product-info";
+    const name = document.createElement("div");
+    name.className = "product-name";
+    name.textContent = achievement.name;
+    const description = document.createElement("div");
+    description.className = "product-desc";
+    description.textContent = achievement.detail + " / ごほうび 💎" + achievement.reward;
+    info.appendChild(name);
+    info.appendChild(description);
+
+    const state = document.createElement("div");
+    state.className = "achieve-state";
+    state.textContent = done ? "達成" : "…";
+
+    card.appendChild(icon);
+    card.appendChild(info);
+    card.appendChild(state);
+    achieveList.appendChild(card);
+  }
+}
+
+
+/* =========================================================
+   お屋敷を継ぐ(プレステージ)
+   5つの強化をぜんぶ Lv10 以上にすると継げる。
+   宝石と強化レベルは0にもどるが、家宝がもらえて、
+   宝物庫の品・図鑑・実績・ストーリーはぜんぶ引き継がれる
+   ========================================================= */
+
+// 「継ぐ」ボタン → まず確認画面を出す(いきなり実行しない!)
+function openPrestigePanel() {
+  if (!canPrestige()) {
+    return;
+  }
+  const reward = getHeirloomReward();
+  document.getElementById("prestige-reward").textContent = reward;
+  document.getElementById("prestige-reward-text").textContent = reward;
+  document.getElementById("prestige-next-gen").textContent = generation + 1;
+  prestigeOverlay.hidden = false;
+}
+
+// 確認画面で「継ぐ」→ 本当に継承する
+function doPrestige() {
+  if (!canPrestige()) {
+    return;
+  }
+
+  // 1. 家宝をもらって、代目を1つ進める
+  const reward = getHeirloomReward();
+  heirlooms += reward;
+  generation += 1;
+
+  // 2. リセットされるもの:持っている宝石と、5つの強化レベル
+  gemCount = 0;
+  upgrades.shape.level = 1;
+  upgrades.color.level = 1;
+  upgrades.size.level = 1;
+  upgrades.speed.level = 1;
+  upgrades.range.level = 1;
+  spawnPaused = false;
+  prestigeAsked = false; // 次にまた継げるようになったら、また声をかけてもらう
+
+  // ※ 統計・ストーリー・図鑑・実績・チュートリアル済みはそのまま引き継がれる
+
+  // 3. エレガントタイム中なら終わらせて、画面のものをかたづける
+  if (feverSecondsLeft > 0) {
+    endFever();
+  }
+  mainArea.querySelectorAll(".gem, .chest, .event-guest").forEach(function (item) {
+    item.remove();
+  });
+
+  // 4. 宝物庫で「玄関の宝石箱」を買っていれば、宝石を持ってスタートできる
+  if (hasTreasure("box")) {
+    gemCount = BOX_START_GEMS;
+  }
+
+  // 5. 画面を新しくして、確認画面を閉じる
+  updateDisplay();
+  saveGame();
+  prestigeOverlay.hidden = true;
+  settingsOverlay.hidden = true;
+  showScreen("atsumeru");
+
+  // 6. 白いフラッシュの演出と、おじょうさまのお祝い
+  showFlash();
+  playFeverSound();
+  showToast(generation + "代目になった! 家宝 🏺+" + reward);
+  checkAchievements();
+  showTutorialStep("prestigeDone");
+
+  // 7. 宝箱の予約をとりなおす(継ぐ前の予約が残らないように)
+  if (firstChestDone) {
+    scheduleChest();
+  }
+}
+
+// 画面全体が一瞬ぱっと白く光る演出
+function showFlash() {
+  const flash = document.createElement("div");
+  flash.className = "flash";
+  gameFrame.appendChild(flash);
+  setTimeout(function () {
+    flash.remove();
+  }, 900);
+}
+
+
+/* =========================================================
+   使用人(自動収集)
+   宝物庫で「使用人を雇う」を買うと、見ていなくても
+   消えそうな宝石から順に拾ってくれる
+   ========================================================= */
+
+let servantTimer = null;
+
+function servantLoop() {
+  // 次のお掃除を予約してから、今回のお仕事をする。
+  // 「使用人の手際」を買っていれば、間隔が半分(2倍の速さ)になる
+  const wait = hasTreasure("hands") ? SERVANT_FAST_INTERVAL : SERVANT_INTERVAL;
+  servantTimer = setTimeout(servantLoop, wait);
+
+  // まだ雇っていない・宝石エリアが隠れているときは何もしない
+  if (!hasTreasure("servant") || mainArea.hidden) {
+    return;
+  }
+
+  // 消えかけ(点滅中)の宝石をいちばんに助ける。なければ、いちばん古い宝石
+  let target = mainArea.querySelector(".gem.expiring:not(.collected)");
+  if (target === null) {
+    target = mainArea.querySelector(".gem:not(.collected)");
+  }
+  if (target === null) {
+    return; // 拾う宝石がなければお休み
+  }
+
+  showServantMark(target); // 「🧹」のしるしをその場に出す
+  collectGem(target, false); // 音は鳴らさずに、そっと拾う
+}
+
+// 使用人が拾った場所に、小さな「🧹」を出す
+function showServantMark(gem) {
+  const mark = document.createElement("span");
+  mark.className = "servant-mark";
+  mark.textContent = "🧹";
+  mark.style.left = (gem.offsetLeft + gem.offsetWidth / 2 - 12) + "px";
+  mark.style.top = (gem.offsetTop - 6) + "px";
+  mainArea.appendChild(mark);
+  setTimeout(function () {
+    mark.remove();
+  }, 800);
+}
+
+
+/* =========================================================
+   ランダムイベント(ネズミ・行商人)
+   ユーザーLv5 から、ときどきお客さん(?)がやってくる
+   ========================================================= */
+
+let eventTimer = null;
+
+// 次のイベントを予約する(90〜180秒後のどこかで起こる)
+function scheduleEvent() {
+  clearTimeout(eventTimer); // 予約は いつも1本だけ
+  const waitSeconds = EVENT_WAIT_MIN + Math.random() * (EVENT_WAIT_MAX - EVENT_WAIT_MIN);
+  eventTimer = setTimeout(startRandomEvent, waitSeconds * 1000);
+}
+
+// イベントを始める。出せないときは少し待ってから、もう一度ためす
+function startRandomEvent() {
+  if (mainArea.hidden || welcomeRushActive || tutorialStep !== null ||
+      getUserLevel() < EVENT_UNLOCK_LEVEL || mainArea.querySelector(".event-guest")) {
+    clearTimeout(eventTimer);
+    eventTimer = setTimeout(startRandomEvent, 10000);
+    return;
+  }
+
+  // 半分の確率でネズミ、半分の確率で行商人
+  if (Math.random() < 0.5) {
+    spawnRat();
+  } else {
+    spawnPeddler();
+  }
+}
+
+// 🐭 ネズミ:画面の宝石をくわえて走って逃げる。タップすると取り返せる!
+function spawnRat() {
+  // まず、画面にある宝石を何個かくわえていく(持っている宝石は減らない)
+  const gems = mainArea.querySelectorAll(".gem:not(.collected)");
+  let stolen = 0;
+  for (let i = 0; i < gems.length && i < RAT_STEAL; i++) {
+    const gem = gems[i];
+    const amount =
+      Number(gem.dataset.shapeLevel) +
+      (Number(gem.dataset.sizeLevel) - 1) +
+      (Number(gem.dataset.colorLevel) - 1);
+    stolen += Math.round(amount * getGemMultiplier());
+    gem.remove();
+  }
+  if (stolen <= 0) {
+    stolen = 10; // 画面に宝石がなかったときの、おみやげぶん
+  }
+
+  const rat = document.createElement("button");
+  rat.className = "event-guest rat";
+  rat.textContent = "🐭";
+  rat.setAttribute("aria-label", "ネズミをつかまえる");
+
+  // 画面のはしから、反対のはしまで走っていく
+  const distance = mainArea.clientWidth + 80;
+  rat.style.left = "-60px";
+  rat.style.top = (20 + Math.random() * Math.max(0, mainArea.clientHeight - 100)) + "px";
+  rat.style.setProperty("--run-distance", distance + "px");
+  rat.style.animationDuration = RAT_LIFETIME + "s";
+
+  let caught = false;
+
+  rat.addEventListener("pointerdown", function () {
+    if (caught) {
+      return;
+    }
+    caught = true;
+    ratCaught += 1;
+    gemCount += stolen;
+    totalGems += stolen;
+    rat.remove();
+
+    playCollectSound();
+    updateDisplay();
+    saveGame();
+    showToast("ネズミから宝石を取り返した! 💎+" + stolen);
+    checkAchievements();
+    scheduleEvent();
+  });
+
+  mainArea.appendChild(rat);
+  showToast("あら、ネズミが宝石を持って逃げますわ!");
+
+  // 逃げ切られたら、くわえていった宝石はおしまい
+  setTimeout(function () {
+    if (!caught) {
+      caught = true;
+      rat.remove();
+      showToast("ネズミに逃げられた……");
+      scheduleEvent();
+    }
+  }, RAT_LIFETIME * 1000);
+}
+
+// 🧺 行商人:しばらく立ち止まっている。タップすると宝石をゆずってくれる
+function spawnPeddler() {
+  const peddler = document.createElement("button");
+  peddler.className = "event-guest peddler";
+  peddler.textContent = "🧺";
+  peddler.setAttribute("aria-label", "行商人から宝石をもらう");
+
+  peddler.style.left = (20 + Math.random() * Math.max(0, mainArea.clientWidth - 90)) + "px";
+  peddler.style.top = (20 + Math.random() * Math.max(0, mainArea.clientHeight - 100)) + "px";
+
+  // くれる宝石の数は、いまのユーザーレベルに合わせて増えていく
+  const gift = Math.round(PEDDLER_GEMS_PER_LEVEL * getUserLevel() * getGemMultiplier());
+
+  let met = false;
+
+  peddler.addEventListener("pointerdown", function () {
+    if (met) {
+      return;
+    }
+    met = true;
+    gemCount += gift;
+    totalGems += gift;
+    peddler.remove();
+
+    playFeverSound();
+    updateDisplay();
+    saveGame();
+    showToast("行商人から宝石をゆずってもらった! 💎+" + gift);
+    checkAchievements();
+    scheduleEvent();
+  });
+
+  mainArea.appendChild(peddler);
+  showToast("行商人が訪ねてきましたわ。");
+
+  // 話しかけないと、そのまま帰ってしまう
+  setTimeout(function () {
+    if (!met) {
+      met = true;
+      peddler.remove();
+      scheduleEvent();
+    }
+  }, PEDDLER_LIFETIME * 1000);
 }
 
 
@@ -1736,6 +2602,27 @@ document.getElementById("menu-story").addEventListener("click", function () {
 });
 document.getElementById("menu-store").addEventListener("click", function () {
   showScreen("store");
+});
+document.getElementById("menu-mansion").addEventListener("click", function () {
+  showScreen("mansion");
+});
+
+// やかた画面の3つのタブ(宝物庫・図鑑・実績)
+document.getElementById("tab-treasure").addEventListener("click", function () {
+  showMansionTab("treasure");
+});
+document.getElementById("tab-zukan").addEventListener("click", function () {
+  showMansionTab("zukan");
+});
+document.getElementById("tab-achieve").addEventListener("click", function () {
+  showMansionTab("achieve");
+});
+
+// お屋敷を継ぐ(ボタン → 確認画面 → 継ぐ/やめておく)
+document.getElementById("prestige-button").addEventListener("click", openPrestigePanel);
+document.getElementById("prestige-yes").addEventListener("click", doPrestige);
+document.getElementById("prestige-no").addEventListener("click", function () {
+  prestigeOverlay.hidden = true;
 });
 
 // ストーリーの会話画面:どこをタップしても次のセリフに進む
@@ -1771,6 +2658,14 @@ showScreen("atsumeru"); // 最初は「あつめる」画面から
 // 宝石が湧き続けるループと、古い宝石が消えていくループを動かし始める
 spawnLoop();
 decayLoop();
+
+// 使用人のお掃除ループ(「使用人を雇う」を買うまでは何もしない)と、
+// ときどき起こるランダムイベント(ネズミ・行商人)の予約を始める
+servantLoop();
+scheduleEvent();
+
+// 前に遊んだぶんで、もう達成できている実績があればここでまとめて受けとる
+checkAchievements(true);
 
 // まだ50個あつめていない人(=はじめての人)は、はじめてボーナスで開始!
 // とちゅうでページを閉じても、開き直せば続きから再開する
